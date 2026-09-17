@@ -4,6 +4,7 @@ import { getCustomer, listPledgesForCustomer } from "@/lib/actions";
 import { computePledgeReports, computeTotals } from "@/lib/reports";
 import { computePledge, formatSAR, todayUtc } from "@/lib/pledge-calc";
 import StatusBadge from "@/components/StatusBadge";
+import CardField from "@/components/CardField";
 import CustomerReportChart from "./CustomerReportChart";
 
 export default async function CustomerReportPage({ params }: PageProps<"/reports/customers/[id]">) {
@@ -58,8 +59,40 @@ export default async function CustomerReportPage({ params }: PageProps<"/reports
 
       <div>
         <h2 className="mb-3 text-lg font-semibold text-slate-800">تفاصيل المشتريات</h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-          <table className="w-full min-w-[700px] text-sm">
+
+        {/* Card list on phones/tablets so nothing needs horizontal scrolling; real table from lg up. */}
+        <div className="space-y-3 lg:hidden">
+          {pledges.map((p) => {
+            const report = pledgeReports.find((r) => r.pledgeId === p.id)!;
+            const status = computePledge(p, today).effectiveStatus;
+            return (
+              <Link
+                key={p.id}
+                href={`/pledges/${p.id}`}
+                className="block rounded-xl border border-slate-200 bg-white p-4 hover:bg-slate-50"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-teal-700">{p.contract_number}</span>
+                  <StatusBadge status={status} />
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2">
+                  <CardField label="القطعة" value={p.item_type} />
+                  <CardField label="المبلغ المستثمر" value={formatSAR(report.invested)} />
+                  <CardField label="الأرباح" value={formatSAR(report.profit)} />
+                  <CardField label="العائد على الاستثمار" value={`${report.roi.toFixed(1)}%`} />
+                </div>
+              </Link>
+            );
+          })}
+          {pledges.length === 0 && (
+            <p className="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-400">
+              لا توجد مشتريات
+            </p>
+          )}
+        </div>
+
+        <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white lg:block">
+          <table className="w-full text-sm">
             <thead className="bg-slate-50 text-slate-600">
               <tr>
                 <th className="px-3 py-2 text-right font-semibold">رقم الفاتورة</th>

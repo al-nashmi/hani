@@ -8,6 +8,7 @@ import type { PledgeComputed } from "@/lib/pledge-calc";
 import type { PledgeSortKey } from "@/lib/actions";
 import { formatDate, formatSAR } from "@/lib/pledge-calc";
 import StatusBadge from "@/components/StatusBadge";
+import CardField from "@/components/CardField";
 
 type Row = { pledge: PledgeWithCustomer; computed: PledgeComputed };
 
@@ -212,10 +213,71 @@ export default function PledgesTable({
   const orderedColumns = useMemo(() => columnOrder.map((k) => COLUMN_BY_KEY.get(k)!), [columnOrder]);
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
+  function handleSortSelect(value: string) {
+    const [key, dir] = value.split(":");
+    const qs = new URLSearchParams();
+    if (baseParams.q) qs.set("q", baseParams.q);
+    qs.set("status", baseParams.status);
+    qs.set("sort", key);
+    qs.set("dir", dir);
+    router.push(`/?${qs.toString()}`);
+  }
+
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="w-full min-w-[900px] text-sm">
+      {/* Sort control + card list on phones/tablets so nothing needs horizontal scrolling; real table from lg up. */}
+      <div className="lg:hidden">
+        <label className="mb-1 block text-xs font-medium text-slate-700">ترتيب حسب</label>
+        <select
+          value={`${sortKey}:${sortDir}`}
+          onChange={(e) => handleSortSelect(e.target.value)}
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
+        >
+          {COLUMNS.filter((c) => c.sortKey).flatMap((c) => [
+            <option key={`${c.sortKey}-asc`} value={`${c.sortKey}:asc`}>
+              {c.label} (تصاعدي)
+            </option>,
+            <option key={`${c.sortKey}-desc`} value={`${c.sortKey}:desc`}>
+              {c.label} (تنازلي)
+            </option>,
+          ])}
+        </select>
+      </div>
+
+      <div className="space-y-3 lg:hidden">
+        {rows.map((row) => (
+          <Link
+            key={row.pledge.id}
+            href={`/pledges/${row.pledge.id}`}
+            className="block rounded-xl border border-slate-200 bg-white p-4 hover:bg-slate-50"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-semibold text-teal-700">{row.pledge.contract_number}</span>
+              <StatusBadge status={row.computed.effectiveStatus} />
+            </div>
+            <p className="mt-1 text-sm text-slate-600">{row.pledge.customer_full_name}</p>
+            <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2">
+              <CardField label="القطعة" value={row.pledge.item_type} />
+              <CardField label="مبلغ الشراء" value={formatSAR(Number(row.pledge.principal_amount))} />
+              <CardField label="تاريخ الشراء" value={formatDate(row.pledge.start_date)} />
+              <CardField label="أيام متبقية" value={String(row.computed.daysRemaining)} />
+              <CardField
+                label="مبلغ الاسترداد اليوم"
+                value={formatSAR(row.computed.totalDue)}
+                className="col-span-2"
+              />
+            </div>
+          </Link>
+        ))}
+        {rows.length === 0 && (
+          <p className="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-400">
+            لا توجد مشتريات مطابقة
+          </p>
+        )}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white lg:block">
+        <table className="w-full text-sm">
           <thead className="bg-slate-50 text-slate-600">
             <tr>
               {orderedColumns.map((col) => {

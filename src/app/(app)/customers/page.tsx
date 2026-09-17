@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { listCustomers } from "@/lib/actions";
+import CardField from "@/components/CardField";
 
 export default async function CustomersPage({ searchParams }: PageProps<"/customers">) {
   const params = await searchParams;
@@ -31,8 +32,30 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="w-full min-w-[700px] text-sm">
+      {/* Card list on phones/tablets so nothing needs horizontal scrolling; real table from lg up. */}
+      <div className="space-y-3 lg:hidden">
+        {customers.map((c) => (
+          <div key={c.id} className="rounded-xl border border-slate-200 bg-white p-4">
+            <Link href={`/customers/${c.id}`} className="font-semibold text-teal-700 hover:underline">
+              {c.full_name}
+            </Link>
+            <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2">
+              <CardField label="رقم الهوية" value={c.national_id || "-"} />
+              <CardField label="الجنسية" value={c.nationality || "-"} />
+              <CardField label="الجوال" value={c.phone || "-"} />
+              <CardField label="البريد الإلكتروني" value={c.email || "-"} />
+            </div>
+          </div>
+        ))}
+        {customers.length === 0 && (
+          <p className="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-400">
+            لا يوجد عملاء
+          </p>
+        )}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white lg:block">
+        <table className="w-full text-sm">
           <thead className="bg-slate-50 text-slate-600">
             <tr>
               <th className="px-3 py-2 text-right font-semibold">الاسم</th>
@@ -50,7 +73,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
                     {c.full_name}
                   </Link>
                 </td>
-                <td className="px-3 py-2">{c.national_id}</td>
+                <td className="px-3 py-2">{c.national_id || "-"}</td>
                 <td className="px-3 py-2 text-slate-600">{c.nationality || "-"}</td>
                 <td className="px-3 py-2 text-slate-600">{c.phone || "-"}</td>
                 <td className="px-3 py-2 text-slate-600">{c.email || "-"}</td>

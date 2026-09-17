@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { listPledges } from "@/lib/actions";
+import CardField from "@/components/CardField";
 import {
   computeAgingReport,
   computeCustomerReports,
@@ -157,8 +158,35 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
 
       <div>
         <h2 className="mb-3 text-lg font-semibold text-slate-800">تفاصيل العملاء</h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-          <table className="w-full min-w-[700px] text-sm">
+
+        {/* Card list on phones/tablets so nothing needs horizontal scrolling; real table from lg up. */}
+        <div className="space-y-3 lg:hidden">
+          {customerRows.map((r) => (
+            <Link
+              key={r.customerId}
+              href={`/reports/customers/${r.customerId}`}
+              className="block rounded-xl border border-slate-200 bg-white p-4 hover:bg-slate-50"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-semibold text-teal-700">{r.customerFullName}</span>
+                <span className="text-xs text-slate-500">{r.pledgeCount} فاتورة</span>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2">
+                <CardField label="المبلغ المستثمر" value={formatSAR(r.invested)} />
+                <CardField label="الأرباح" value={formatSAR(r.profit)} />
+                <CardField label="العائد على الاستثمار" value={`${r.roi.toFixed(1)}%`} />
+              </div>
+            </Link>
+          ))}
+          {customerRows.length === 0 && (
+            <p className="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-400">
+              لا توجد بيانات
+            </p>
+          )}
+        </div>
+
+        <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white lg:block">
+          <table className="w-full text-sm">
             <thead className="bg-slate-50 text-slate-600">
               <tr>
                 <th className="px-3 py-2 text-right font-semibold">العميل</th>
