@@ -12,7 +12,7 @@ import {
   type ShopProfile,
 } from "./db";
 import { checkPassword, createSessionToken, SESSION_COOKIE } from "./auth";
-import { computePledge, formatDate, formatSAR, todayUtc } from "./pledge-calc";
+import { computePledge, formatDate, todayUtc } from "./pledge-calc";
 
 const CONTACT_METHODS: ContactMethod[] = ["phone", "whatsapp", "sms", "in_person", "other"];
 
@@ -171,13 +171,10 @@ export async function listReminders(): Promise<ReminderItem[]> {
   return rows.map((p) => {
     const computed = computePledge(p, today);
     const message =
-      `مرحبًا ${p.customer_full_name}،\n` +
-      `نود تذكيركم بأن فترة استرداد القطعة الخاصة بفاتورة رقم ${p.contract_number} (${p.item_description}) ` +
-      (computed.isOverdue
-        ? "قد انتهت."
-        : `ستنتهي خلال ${computed.daysRemaining} يوم، بتاريخ ${formatDate(computed.endDate)}.`) +
-      `\nالمبلغ المطلوب للاسترداد اليوم: ${formatSAR(computed.totalDue)}.` +
-      `\nيرجى التواصل معنا لاسترداد القطعة أو تجديد المدة.\n${shopProfile.name}`;
+      `السلام عليكم\n` +
+      `حبينا نذكرك بفاتورتك رقم ${p.contract_number}\n` +
+      `الموعد النهائي للسداد بتاريخ ${formatDate(computed.endDate)}\n` +
+      shopProfile.name;
 
     const normalizedPhone = p.customer_phone ? normalizeSaudiPhone(p.customer_phone) : null;
     const whatsappUrl = normalizedPhone
