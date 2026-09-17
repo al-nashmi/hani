@@ -3,13 +3,11 @@
 import { useActionState, useMemo, useState } from "react";
 import { createPledgeFormAction } from "@/lib/actions";
 import type { Customer } from "@/lib/db";
-import { formatSAR } from "@/lib/pledge-calc";
+import { formatSAR, ITEM_TYPES } from "@/lib/pledge-calc";
 import SignaturePad from "@/components/SignaturePad";
 import ImageAttachField from "@/components/ImageAttachField";
 
 const initialState: { error?: string } = {};
-
-const ITEM_TYPES = ["ذهب", "مجوهرات", "ساعة", "أخرى"];
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);

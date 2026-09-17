@@ -92,6 +92,115 @@ export function computeTotals(rows: { invested: number; profit: number }[]) {
   return { invested, profit, roi: invested > 0 ? (profit / invested) * 100 : 0 };
 }
 
+// ---------- Item-type breakdown ----------
+
+export type ItemTypeDatum = { itemType: string; count: number; invested: number };
+
+export function computeItemTypeBreakdown(pledges: Pledge[]): ItemTypeDatum[] {
+  const byType = new Map<string, ItemTypeDatum>();
+  for (const p of pledges) {
+    const existing = byType.get(p.item_type);
+    const invested = Number(p.principal_amount);
+    if (existing) {
+      existing.count += 1;
+      existing.invested += invested;
+    } else {
+      byType.set(p.item_type, { itemType: p.item_type, count: 1, invested });
+    }
+  }
+  return Array.from(byType.values()).sort((a, b) => b.invested - a.invested);
+}
+
+// ---------- Aging report (overdue pledges by how late they are) ----------
+
+export type AgingBucket = { label: string; count: number; amountDue: number };
+
+const AGING_BUCKETS = [
+  { label: "0-30 يوم", min: 0, max: 30 },
+  { label: "31-60 يوم", min: 31, max: 60 },
+  { label: "61-90 يوم", min: 61, max: 90 },
+  { label: "أكثر من 90 يوم", min: 91, max: Infinity },
+];
+
+/** Buckets currently-overdue active pledges by how many days past their redemption deadline they are. */
+export function computeAgingReport(pledges: Pledge[], asOf: Date = todayUtc()): AgingBucket[] {
+  const buckets = AGING_BUCKETS.map((b) => ({ label: b.label, min: b.min, max: b.max, count: 0, amountDue: 0 }));
+  for (const p of pledges) {
+    const computed = computePledge(p, asOf);
+    if (!computed.isOverdue) continue;
+    const daysOverdue = computed.daysElapsedRaw - p.period_days;
+    const bucket = buckets.find((b) => daysOverdue >= b.min && daysOverdue <= b.max);
+    if (bucket) {
+      bucket.count += 1;
+      bucket.amountDue += computed.totalDue;
+    }
+  }
+  return buckets
+    .filter((b) => b.count > 0)
+    .map(({ label, count, amountDue }) => ({ label, count, amountDue }));
+}
+
+// ---------- Redemption rate ----------
+
+export type RedemptionRate = { redeemed: number; forfeited: number; ratePercent: number };
+
+/** Of pledges that reached a final outcome (redeemed or forfeited), what share was redeemed. */
+export function computeRedemptionRate(pledges: Pledge[]): RedemptionRate {
+  const redeemed = pledges.filter((p) => p.status === "redeemed").length;
+  const forfeited = pledges.filter((p) => p.status === "forfeited").length;
+  const resolved = redeemed + forfeited;
+  return { redeemed, forfeited, ratePercent: resolved > 0 ? (redeemed / resolved) * 100 : 0 };
+}
+
+// ---------- Monthly trend ----------
+
+export type TrendBucket = { key: string; label: string; invested: number; profit: number };
+
+/**
+ * Groups pledges by their start month (or, once the span exceeds ~18 months,
+ * by year instead) so the chart stays readable over a shop's whole history.
+ */
+export function computeTrend(pledges: Pledge[], asOf: Date = todayUtc()): TrendBucket[] {
+  const byMonth = new Map<string, { invested: number; profit: number }>();
+  for (const p of pledges) {
+    const key = toISODateString(p.start_date).slice(0, 7); // "YYYY-MM"
+    const existing = byMonth.get(key);
+    const invested = Number(p.principal_amount);
+    const profit = computePledgeProfit(p, asOf);
+    if (existing) {
+      existing.invested += invested;
+      existing.profit += profit;
+    } else {
+      byMonth.set(key, { invested, profit });
+    }
+  }
+
+  const monthKeys = Array.from(byMonth.keys()).sort();
+  if (monthKeys.length <= 18) {
+    return monthKeys.map((key) => {
+      const [y, m] = key.split("-");
+      const v = byMonth.get(key)!;
+      return { key, label: `${MONTH_NAMES_AR[Number(m) - 1]} ${y}`, invested: v.invested, profit: v.profit };
+    });
+  }
+
+  const byYear = new Map<string, { invested: number; profit: number }>();
+  for (const key of monthKeys) {
+    const year = key.slice(0, 4);
+    const v = byMonth.get(key)!;
+    const existing = byYear.get(year);
+    if (existing) {
+      existing.invested += v.invested;
+      existing.profit += v.profit;
+    } else {
+      byYear.set(year, { ...v });
+    }
+  }
+  return Array.from(byYear.keys())
+    .sort()
+    .map((year) => ({ key: year, label: year, ...byYear.get(year)! }));
+}
+
 // ---------- Date-range filtering ----------
 
 export type ReportPeriod = "all" | "month" | "ytd" | "range";

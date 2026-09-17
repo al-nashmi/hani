@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ITEM_TYPES } from "@/lib/pledge-calc";
 
 const PERIODS = [
   { value: "all", label: "الكل" },
@@ -15,12 +16,14 @@ export default function ReportPeriodFilter({
   initialYear,
   initialFrom,
   initialTo,
+  initialType,
 }: {
   initialPeriod: string;
   initialMonth: string;
   initialYear: string;
   initialFrom: string;
   initialTo: string;
+  initialType: string;
 }) {
   const [period, setPeriod] = useState(initialPeriod);
 
@@ -37,6 +40,22 @@ export default function ReportPeriodFilter({
           {PERIODS.map((p) => (
             <option key={p.value} value={p.value}>
               {p.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-xs font-medium text-slate-700">نوع القطعة</label>
+        <select
+          name="type"
+          defaultValue={initialType}
+          className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
+        >
+          <option value="all">الكل</option>
+          {ITEM_TYPES.map((t) => (
+            <option key={t} value={t}>
+              {t}
             </option>
           ))}
         </select>

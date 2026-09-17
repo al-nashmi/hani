@@ -124,7 +124,7 @@ export async function listPledges(filter?: {
     JOIN customers c ON c.id = p.customer_id
     WHERE (${q}::text IS NULL OR c.full_name ILIKE ${q} OR c.national_id ILIKE ${q} OR p.contract_number ILIKE ${q})
     ORDER BY p.created_at DESC
-    LIMIT 1000
+    LIMIT 20000
   `) as PledgeWithCustomer[];
   return rows;
 }

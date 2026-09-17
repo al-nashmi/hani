@@ -1,5 +1,7 @@
 import type { Pledge } from "./db";
 
+export const ITEM_TYPES = ["ذهب", "مجوهرات", "ساعة", "أخرى"] as const;
+
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 // The Neon driver parses Postgres DATE/TIMESTAMPTZ columns into native Date

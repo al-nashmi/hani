@@ -1,8 +1,24 @@
 import Link from "next/link";
 import { listPledges } from "@/lib/actions";
-import { computeCustomerReports, computeTotals, isWithinRange, resolveReportRange } from "@/lib/reports";
-import { computePledge, formatSAR, todayUtc } from "@/lib/pledge-calc";
-import { StatusDistributionChart, TopCustomersChart, type StatusDatum } from "./ReportsCharts";
+import {
+  computeAgingReport,
+  computeCustomerReports,
+  computeItemTypeBreakdown,
+  computeRedemptionRate,
+  computeTotals,
+  computeTrend,
+  isWithinRange,
+  resolveReportRange,
+} from "@/lib/reports";
+import { computePledge, formatSAR, ITEM_TYPES, todayUtc } from "@/lib/pledge-calc";
+import {
+  AgingChart,
+  ItemTypeChart,
+  StatusDistributionChart,
+  TopCustomersChart,
+  TrendChart,
+  type StatusDatum,
+} from "./ReportsCharts";
 import ReportPeriodFilter from "./ReportPeriodFilter";
 
 export const dynamic = "force-dynamic";
@@ -16,12 +32,20 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
     { period: getParam("period"), month: getParam("month"), year: getParam("year"), from: getParam("from"), to: getParam("to") },
     today
   );
+  const itemTypeFilter = getParam("type") || "all";
+  const isValidItemType = (ITEM_TYPES as readonly string[]).includes(itemTypeFilter);
 
   const allPledges = await listPledges({});
-  const pledges = allPledges.filter((p) => isWithinRange(p.start_date, range));
+  const pledges = allPledges.filter(
+    (p) => isWithinRange(p.start_date, range) && (!isValidItemType || p.item_type === itemTypeFilter)
+  );
 
   const customerRows = computeCustomerReports(pledges, today);
   const totals = computeTotals(customerRows);
+  const redemption = computeRedemptionRate(pledges);
+  const itemTypeData = computeItemTypeBreakdown(pledges);
+  const agingData = computeAgingReport(pledges, today);
+  const trendData = computeTrend(pledges, today);
 
   const statusCounts = new Map<string, number>();
   for (const p of pledges) {
@@ -44,7 +68,10 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-bold text-slate-800">التقارير</h1>
-        <span className="text-sm text-slate-500">الفترة المعروضة: {range.label}</span>
+        <span className="text-sm text-slate-500">
+          الفترة المعروضة: {range.label}
+          {isValidItemType ? ` - نوع القطعة: ${itemTypeFilter}` : ""}
+        </span>
       </div>
 
       <ReportPeriodFilter
@@ -53,9 +80,10 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
         initialYear={getParam("year") || String(today.getUTCFullYear())}
         initialFrom={getParam("from")}
         initialTo={getParam("to")}
+        initialType={isValidItemType ? itemTypeFilter : "all"}
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-sm text-slate-500">إجمالي المبالغ المستثمرة</p>
           <p className="mt-1 text-2xl font-bold text-teal-800">{formatSAR(totals.invested)}</p>
@@ -67,6 +95,13 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
         <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-sm text-slate-500">العائد على الاستثمار</p>
           <p className="mt-1 text-2xl font-bold text-teal-800">{totals.roi.toFixed(1)}%</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <p className="text-sm text-slate-500">معدل الاسترداد</p>
+          <p className="mt-1 text-2xl font-bold text-teal-800">{redemption.ratePercent.toFixed(1)}%</p>
+          <p className="mt-0.5 text-xs text-slate-400">
+            {redemption.redeemed} استرداد مقابل {redemption.forfeited} ملك المحل
+          </p>
         </div>
       </div>
 
@@ -86,6 +121,36 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
             <StatusDistributionChart data={statusData} />
           ) : (
             <p className="py-8 text-center text-sm text-slate-400">لا توجد بيانات كافية</p>
+          )}
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 className="mb-1 font-semibold text-slate-800">الاتجاه الشهري (المبلغ المستثمر والأرباح)</h2>
+        <p className="mb-3 text-xs text-slate-500">يُجمَّع سنويًا تلقائيًا عند اتساع الفترة المعروضة</p>
+        {trendData.length > 0 ? (
+          <TrendChart data={trendData} />
+        ) : (
+          <p className="py-8 text-center text-sm text-slate-400">لا توجد بيانات كافية</p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <h2 className="mb-3 font-semibold text-slate-800">توزيع المشتريات حسب نوع القطعة</h2>
+          {itemTypeData.length > 0 ? (
+            <ItemTypeChart data={itemTypeData} />
+          ) : (
+            <p className="py-8 text-center text-sm text-slate-400">لا توجد بيانات كافية</p>
+          )}
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <h2 className="mb-1 font-semibold text-slate-800">أعمار المتأخرات</h2>
+          <p className="mb-3 text-xs text-slate-500">الفواتير النشطة اللي تجاوزت مدة الاسترداد، حسب عدد أيام التأخير</p>
+          {agingData.length > 0 ? (
+            <AgingChart data={agingData} />
+          ) : (
+            <p className="py-8 text-center text-sm text-slate-400">لا توجد فواتير متأخرة حاليًا</p>
           )}
         </div>
       </div>
