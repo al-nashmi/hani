@@ -57,6 +57,17 @@ export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[
             <p className="mt-1 whitespace-pre-wrap text-slate-800">{pledge.notes}</p>
           </div>
         )}
+        {pledge.customer_signature && (
+          <div className="mt-4">
+            <p className="mb-1 text-xs text-slate-500">توقيع العميل</p>
+            {/* eslint-disable-next-line @next/next/no-img-element -- stored base64 signature, not an optimizable asset */}
+            <img
+              src={pledge.customer_signature}
+              alt="توقيع العميل"
+              className="h-28 rounded-lg border border-slate-200 bg-white"
+            />
+          </div>
+        )}
       </section>
 
       {pledge.status === "redeemed" && (

@@ -60,6 +60,7 @@ export type Pledge = {
   redeemed_at: string | Date | null;
   settlement_amount: string | null;
   notes: string | null;
+  customer_signature: string | null;
   created_at: string | Date;
   updated_at: string | Date;
 };

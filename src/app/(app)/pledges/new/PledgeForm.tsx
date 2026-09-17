@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import { createPledgeFormAction } from "@/lib/actions";
 import type { Customer } from "@/lib/db";
+import SignaturePad from "@/components/SignaturePad";
 
 const initialState: { error?: string } = {};
 
@@ -12,23 +13,37 @@ function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function matchesCustomer(c: Customer, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return false;
+  return (
+    c.full_name.toLowerCase().includes(q) ||
+    c.national_id.toLowerCase().includes(q) ||
+    (c.phone ?? "").toLowerCase().includes(q) ||
+    (c.email ?? "").toLowerCase().includes(q)
+  );
+}
+
 export default function PledgeForm({
   customers,
   preselectedCustomerId,
+  nextContractNumber,
 }: {
   customers: Customer[];
   preselectedCustomerId?: number;
+  nextContractNumber: string;
 }) {
   const preselected = preselectedCustomerId
     ? customers.find((c) => c.id === preselectedCustomerId)
     : undefined;
 
-  const [mode, setMode] = useState<"existing" | "new">(preselected ? "existing" : "existing");
-  const [nationalIdInput, setNationalIdInput] = useState(preselected?.national_id ?? "");
+  const [mode, setMode] = useState<"existing" | "new">("existing");
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | undefined>(preselected);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const matched = useMemo(
-    () => customers.find((c) => c.national_id === nationalIdInput.trim()),
-    [customers, nationalIdInput]
+  const matches = useMemo(
+    () => (selectedCustomer ? [] : customers.filter((c) => matchesCustomer(c, searchQuery)).slice(0, 8)),
+    [customers, searchQuery, selectedCustomer]
   );
 
   const [state, formAction, pending] = useActionState(
@@ -67,34 +82,61 @@ export default function PledgeForm({
         {mode === "existing" ? (
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">
-              رقم الهوية <span className="text-red-500">*</span>
+              ابحث عن العميل <span className="text-red-500">*</span>
             </label>
-            <input
-              list="customers-list"
-              value={nationalIdInput}
-              onChange={(e) => setNationalIdInput(e.target.value)}
-              placeholder="اكتب رقم الهوية أو اسم العميل"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
-            />
-            <datalist id="customers-list">
-              {customers.map((c) => (
-                <option key={c.id} value={c.national_id}>
-                  {c.full_name}
-                </option>
-              ))}
-            </datalist>
-            <input type="hidden" name="customer_id" value={matched?.id ?? ""} />
-            {matched ? (
-              <p className="mt-2 text-sm text-emerald-700">
-                تم العثور على العميل: <b>{matched.full_name}</b>
-                {matched.phone ? ` - ${matched.phone}` : ""}
-              </p>
-            ) : (
-              nationalIdInput.trim() !== "" && (
-                <p className="mt-2 text-sm text-amber-700">
-                  لا يوجد عميل بهذا الرقم. استخدم تبويب &quot;عميل جديد&quot; لتسجيله.
+            <input type="hidden" name="customer_id" value={selectedCustomer?.id ?? ""} />
+
+            {selectedCustomer ? (
+              <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+                <p className="text-sm text-emerald-800">
+                  <b>{selectedCustomer.full_name}</b> - {selectedCustomer.national_id}
+                  {selectedCustomer.phone ? ` - ${selectedCustomer.phone}` : ""}
                 </p>
-              )
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCustomer(undefined);
+                    setSearchQuery("");
+                  }}
+                  className="text-xs font-medium text-emerald-800 underline"
+                >
+                  تغيير
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="اكتب الاسم أو رقم الجوال أو رقم الهوية أو البريد الإلكتروني"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
+                />
+                {searchQuery.trim() !== "" && (
+                  <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
+                    {matches.length > 0 ? (
+                      matches.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedCustomer(c);
+                            setSearchQuery("");
+                          }}
+                          className="block w-full border-b border-slate-100 px-3 py-2 text-right text-sm last:border-b-0 hover:bg-slate-50"
+                        >
+                          <span className="font-medium text-slate-800">{c.full_name}</span>
+                          <span className="text-slate-500"> - {c.national_id}</span>
+                          {c.phone && <span className="text-slate-500"> - {c.phone}</span>}
+                        </button>
+                      ))
+                    ) : (
+                      <p className="px-3 py-2 text-sm text-amber-700">
+                        لا يوجد عميل مطابق. استخدم تبويب &quot;عميل جديد&quot; لتسجيله.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         ) : (
@@ -113,7 +155,17 @@ export default function PledgeForm({
       <section className="rounded-xl border border-slate-200 bg-white p-5">
         <h2 className="mb-4 font-semibold text-slate-800">بيانات القطعة والرهن</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="رقم العقد / الفاتورة" name="contract_number" required />
+          <div>
+            <Field
+              label="رقم العقد / الفاتورة"
+              name="contract_number"
+              required
+              defaultValue={nextContractNumber}
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              مُولَّد تلقائيًا. عدّله يدويًا فقط لتسجيل فاتورة قديمة بأثر رجعي.
+            </p>
+          </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">
               نوع القطعة <span className="text-red-500">*</span>
@@ -159,6 +211,10 @@ export default function PledgeForm({
             />
           </div>
         </div>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-5">
+        <SignaturePad name="customer_signature" />
       </section>
 
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}

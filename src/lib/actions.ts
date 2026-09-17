@@ -44,7 +44,7 @@ export async function listCustomers(search?: string): Promise<Customer[]> {
     const q = `%${search.trim()}%`;
     return (await sql`
       SELECT * FROM customers
-      WHERE full_name ILIKE ${q} OR national_id ILIKE ${q} OR phone ILIKE ${q}
+      WHERE full_name ILIKE ${q} OR national_id ILIKE ${q} OR phone ILIKE ${q} OR email ILIKE ${q}
       ORDER BY created_at DESC
       LIMIT 200
     `) as Customer[];
@@ -135,6 +135,20 @@ export async function listPledgesForCustomer(customerId: number): Promise<Pledge
   `) as Pledge[];
 }
 
+const AUTO_CONTRACT_PREFIX = "H";
+
+/** Next auto-generated invoice number, continuing after the highest existing "H<digits>" number (old free-text invoice numbers are left untouched). */
+export async function getNextContractNumber(): Promise<string> {
+  const rows = (await sql`
+    SELECT contract_number FROM pledges WHERE contract_number ~ '^H[0-9]+$'
+  `) as { contract_number: string }[];
+  const maxN = rows.reduce((max, r) => {
+    const n = Number(r.contract_number.slice(1));
+    return n > max ? n : max;
+  }, 0);
+  return `${AUTO_CONTRACT_PREFIX}${maxN + 1}`;
+}
+
 export async function createPledgeFormAction(formData: FormData): Promise<{ error?: string }> {
   const customerMode = String(formData.get("customer_mode") ?? "existing");
   let customer_id = Number(formData.get("customer_id"));
@@ -178,9 +192,16 @@ export async function createPledgeFormAction(formData: FormData): Promise<{ erro
   const period_days = Number(formData.get("period_days") || 90);
   const start_date = String(formData.get("start_date") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
+  const customer_signature = String(formData.get("customer_signature") ?? "").trim();
 
   if (!customer_id || !contract_number || !item_type || !item_description || !start_date) {
     return { error: "الرجاء تعبئة جميع الحقول المطلوبة" };
+  }
+  if (!customer_signature.startsWith("data:image/")) {
+    return { error: "توقيع العميل مطلوب" };
+  }
+  if (customer_signature.length > 300_000) {
+    return { error: "توقيع العميل كبير جدًا، حاول توقيع أبسط" };
   }
   if (!Number.isFinite(principal_amount) || principal_amount <= 0) {
     return { error: "مبلغ الرهن غير صحيح" };
@@ -203,12 +224,12 @@ export async function createPledgeFormAction(formData: FormData): Promise<{ erro
     INSERT INTO pledges (
       contract_number, customer_id, item_type, item_description, weight_grams,
       reference_number, box_number, family_group, principal_amount,
-      monthly_rate_percent, period_days, start_date, notes
+      monthly_rate_percent, period_days, start_date, notes, customer_signature
     ) VALUES (
       ${contract_number}, ${customer_id}, ${item_type}, ${item_description},
       ${weight_grams ? Number(weight_grams) : null}, ${reference_number || null},
       ${box_number || null}, ${family_group || null}, ${principal_amount},
-      ${monthly_rate_percent}, ${period_days}, ${start_date}, ${notes || null}
+      ${monthly_rate_percent}, ${period_days}, ${start_date}, ${notes || null}, ${customer_signature}
     )
     RETURNING id
   `) as { id: number }[];
