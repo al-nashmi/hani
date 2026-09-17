@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { listPledges } from "@/lib/actions";
-import { computePledge, formatDate, formatSAR, todayUtc } from "@/lib/pledge-calc";
-import StatusBadge from "@/components/StatusBadge";
+import { computePledge, formatSAR, todayUtc } from "@/lib/pledge-calc";
+import PledgesTable from "@/components/PledgesTable";
 
 const FILTERS = [
   { key: "all", label: "الكل" },
@@ -77,55 +77,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/">) {
         ))}
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="w-full min-w-[900px] text-sm">
-          <thead className="bg-slate-50 text-slate-600">
-            <tr>
-              <th className="px-3 py-2 text-right font-semibold">رقم الفاتورة</th>
-              <th className="px-3 py-2 text-right font-semibold">العميل</th>
-              <th className="px-3 py-2 text-right font-semibold">القطعة</th>
-              <th className="px-3 py-2 text-right font-semibold">مبلغ الشراء</th>
-              <th className="px-3 py-2 text-right font-semibold">تاريخ الشراء</th>
-              <th className="px-3 py-2 text-right font-semibold">أيام مستهلكة</th>
-              <th className="px-3 py-2 text-right font-semibold">أيام متبقية</th>
-              <th className="px-3 py-2 text-right font-semibold">مبلغ الاسترداد اليوم</th>
-              <th className="px-3 py-2 text-right font-semibold">الحالة</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(({ pledge, computed }) => (
-              <tr key={pledge.id} className="border-t border-slate-100 hover:bg-slate-50">
-                <td className="px-3 py-2">
-                  <Link href={`/pledges/${pledge.id}`} className="font-medium text-teal-700 hover:underline">
-                    {pledge.contract_number}
-                  </Link>
-                </td>
-                <td className="px-3 py-2">
-                  <Link href={`/customers/${pledge.customer_id}`} className="hover:underline">
-                    {pledge.customer_full_name}
-                  </Link>
-                </td>
-                <td className="px-3 py-2 text-slate-600">{pledge.item_type}</td>
-                <td className="px-3 py-2">{formatSAR(Number(pledge.principal_amount))}</td>
-                <td className="px-3 py-2 text-slate-600">{formatDate(pledge.start_date)}</td>
-                <td className="px-3 py-2">{computed.daysElapsed}</td>
-                <td className="px-3 py-2">{computed.daysRemaining}</td>
-                <td className="px-3 py-2 font-medium">{formatSAR(computed.totalDue)}</td>
-                <td className="px-3 py-2">
-                  <StatusBadge status={computed.effectiveStatus} />
-                </td>
-              </tr>
-            ))}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={9} className="px-3 py-8 text-center text-slate-400">
-                  لا توجد مشتريات مطابقة
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <PledgesTable rows={filtered} />
     </div>
   );
 }
