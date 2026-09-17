@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
  * work through one code path (desktop + mobile). Writes the signature as a
  * PNG data URL into a hidden form input on every stroke.
  */
-export default function SignaturePad({ name }: { name: string }) {
+export default function SignaturePad({ name, label = "توقيع العميل" }: { name: string; label?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const drawingRef = useRef(false);
@@ -90,7 +90,7 @@ export default function SignaturePad({ name }: { name: string }) {
     <div>
       <div className="flex items-center justify-between mb-1">
         <label className="block text-sm font-medium text-slate-700">
-          توقيع العميل <span className="text-red-500">*</span>
+          {label} <span className="text-red-500">*</span>
         </label>
         <button
           type="button"

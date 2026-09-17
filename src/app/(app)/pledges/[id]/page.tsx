@@ -26,7 +26,7 @@ export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[
     <div className="max-w-3xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-800">عقد رهن رقم {pledge.contract_number}</h1>
+          <h1 className="text-xl font-bold text-slate-800">فاتورة شراء رقم {pledge.contract_number}</h1>
           <Link href={`/customers/${pledge.customer_id}`} className="text-sm text-teal-700 hover:underline">
             {pledge.customer_full_name} - {pledge.customer_national_id}
           </Link>
@@ -58,17 +58,17 @@ export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-4 font-semibold text-slate-800">بيانات الرهن والحساب اليومي</h2>
+        <h2 className="mb-4 font-semibold text-slate-800">بيانات الشراء وحساب الاسترداد اليومي</h2>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <Info label="مبلغ الرهن" value={formatSAR(Number(pledge.principal_amount))} />
-          <Info label="نسبة الرهن الشهرية" value={`${pledge.monthly_rate_percent}%`} />
-          <Info label="مدة الرهن" value={`${pledge.period_days} يوم`} />
-          <Info label="تاريخ البدء" value={formatDate(pledge.start_date)} />
-          <Info label="تاريخ الاستحقاق" value={computed.endDate.toISOString().slice(0, 10)} />
+          <Info label="مبلغ الشراء" value={formatSAR(Number(pledge.principal_amount))} />
+          <Info label="نسبة الاسترداد الشهرية" value={`${pledge.monthly_rate_percent}%`} />
+          <Info label="مدة الاسترداد" value={`${pledge.period_days} يوم`} />
+          <Info label="تاريخ الشراء" value={formatDate(pledge.start_date)} />
+          <Info label="تاريخ انتهاء الاسترداد" value={computed.endDate.toISOString().slice(0, 10)} />
           <Info label="الأيام المستهلكة" value={String(computed.daysElapsed)} />
           <Info label="الأيام المتبقية" value={String(computed.daysRemaining)} />
-          <Info label="الفائدة المتراكمة حتى اليوم" value={formatSAR(computed.feeAccrued)} />
-          <Info label="إجمالي المستحق اليوم" value={formatSAR(computed.totalDue)} />
+          <Info label="قيمة الاسترداد المتراكمة حتى اليوم" value={formatSAR(computed.feeAccrued)} />
+          <Info label="إجمالي مبلغ الاسترداد اليوم" value={formatSAR(computed.totalDue)} />
         </div>
         {pledge.notes && (
           <div className="mt-4">
@@ -78,11 +78,11 @@ export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[
         )}
         {pledge.customer_signature && (
           <div className="mt-4">
-            <p className="mb-1 text-xs text-slate-500">توقيع العميل</p>
+            <p className="mb-1 text-xs text-slate-500">توقيع البائع (العميل)</p>
             {/* eslint-disable-next-line @next/next/no-img-element -- stored base64 signature, not an optimizable asset */}
             <img
               src={pledge.customer_signature}
-              alt="توقيع العميل"
+              alt="توقيع البائع"
               className="h-28 rounded-lg border border-slate-200 bg-white"
             />
           </div>
@@ -91,9 +91,9 @@ export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[
 
       {pledge.status === "redeemed" && (
         <section className="rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="mb-2 font-semibold text-slate-800">تمت التسوية</h2>
+          <h2 className="mb-2 font-semibold text-slate-800">تم الاسترداد</h2>
           <p className="text-sm text-slate-600">
-            استُرجعت القطعة بتاريخ {pledge.redeemed_at ? formatDate(pledge.redeemed_at) : "-"} مقابل{" "}
+            أعاد العميل شراء القطعة بتاريخ {pledge.redeemed_at ? formatDate(pledge.redeemed_at) : "-"} مقابل{" "}
             {formatSAR(Number(pledge.settlement_amount))}
           </p>
         </section>
@@ -102,14 +102,15 @@ export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[
       {computed.effectiveStatus === "forfeited" && pledge.status === "active" && (
         <section className="rounded-xl border border-red-200 bg-red-50 p-5">
           <p className="text-sm text-red-800">
-            انتهت مدة الرهن دون استرجاع العميل للقطعة، وبموجب شروط العقد آلت ملكيتها للمحل تلقائيًا.
+            انتهت مهلة إعادة الشراء دون أن يستردّ العميل القطعة، وبموجب شروط العقد تبقى ملكًا خالصًا للمحل ويسقط حق
+            العميل في إعادة شرائها.
           </p>
           <form action={forfeitPledgeAction.bind(null, pledge.id)} className="mt-3">
             <button
               type="submit"
               className="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800"
             >
-              تثبيت آلت للمحل في السجل
+              تثبيت ملكية المحل في السجل
             </button>
           </form>
         </section>
@@ -121,7 +122,7 @@ export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[
             type="submit"
             className="rounded-lg bg-emerald-700 px-6 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800"
           >
-            تسجيل استرجاع العميل للقطعة (تسوية بمبلغ {formatSAR(computed.totalDue)})
+            تسجيل إعادة شراء العميل للقطعة (بمبلغ {formatSAR(computed.totalDue)})
           </button>
         </form>
       )}

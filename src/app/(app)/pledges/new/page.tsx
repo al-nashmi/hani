@@ -8,7 +8,7 @@ export default async function NewPledgePage({ searchParams }: PageProps<"/pledge
 
   return (
     <div className="max-w-3xl">
-      <h1 className="mb-6 text-xl font-bold text-slate-800">تسجيل رهن جديد</h1>
+      <h1 className="mb-6 text-xl font-bold text-slate-800">تسجيل عملية شراء جديدة</h1>
       <PledgeForm
         customers={customers}
         preselectedCustomerId={customerIdParam}

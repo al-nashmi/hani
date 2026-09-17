@@ -6,9 +6,9 @@ import StatusBadge from "@/components/StatusBadge";
 const FILTERS = [
   { key: "all", label: "الكل" },
   { key: "active", label: "نشط" },
-  { key: "due_soon", label: "يقترب الاستحقاق" },
-  { key: "forfeited", label: "آلت للمحل" },
-  { key: "redeemed", label: "مسترجعة" },
+  { key: "due_soon", label: "يقترب انتهاء الاسترداد" },
+  { key: "forfeited", label: "ملك المحل" },
+  { key: "redeemed", label: "تم الاسترداد" },
 ] as const;
 
 export default async function DashboardPage({ searchParams }: PageProps<"/">) {
@@ -36,15 +36,15 @@ export default async function DashboardPage({ searchParams }: PageProps<"/">) {
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-sm text-slate-500">عدد الرهونات النشطة</p>
+          <p className="text-sm text-slate-500">عدد المشتريات النشطة</p>
           <p className="mt-1 text-2xl font-bold text-teal-800">{totals.activeCount}</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-sm text-slate-500">إجمالي المبالغ الأصلية القائمة</p>
+          <p className="text-sm text-slate-500">إجمالي مبالغ الشراء القائمة</p>
           <p className="mt-1 text-2xl font-bold text-teal-800">{formatSAR(totals.principalOutstanding)}</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-sm text-slate-500">إجمالي المستحق اليوم (بالفائدة)</p>
+          <p className="text-sm text-slate-500">إجمالي مبلغ الاسترداد اليوم</p>
           <p className="mt-1 text-2xl font-bold text-teal-800">{formatSAR(totals.dueOutstanding)}</p>
         </div>
       </div>
@@ -54,7 +54,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/">) {
           type="text"
           name="q"
           defaultValue={search}
-          placeholder="بحث بالاسم / رقم الهوية / رقم العقد"
+          placeholder="بحث بالاسم / رقم الهوية / رقم الفاتورة"
           className="w-72 max-w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
         />
         <input type="hidden" name="status" value={filter} />
@@ -81,14 +81,14 @@ export default async function DashboardPage({ searchParams }: PageProps<"/">) {
         <table className="w-full min-w-[900px] text-sm">
           <thead className="bg-slate-50 text-slate-600">
             <tr>
-              <th className="px-3 py-2 text-right font-semibold">رقم العقد</th>
+              <th className="px-3 py-2 text-right font-semibold">رقم الفاتورة</th>
               <th className="px-3 py-2 text-right font-semibold">العميل</th>
               <th className="px-3 py-2 text-right font-semibold">القطعة</th>
-              <th className="px-3 py-2 text-right font-semibold">المبلغ الأصلي</th>
-              <th className="px-3 py-2 text-right font-semibold">تاريخ البدء</th>
+              <th className="px-3 py-2 text-right font-semibold">مبلغ الشراء</th>
+              <th className="px-3 py-2 text-right font-semibold">تاريخ الشراء</th>
               <th className="px-3 py-2 text-right font-semibold">أيام مستهلكة</th>
               <th className="px-3 py-2 text-right font-semibold">أيام متبقية</th>
-              <th className="px-3 py-2 text-right font-semibold">المستحق اليوم</th>
+              <th className="px-3 py-2 text-right font-semibold">مبلغ الاسترداد اليوم</th>
               <th className="px-3 py-2 text-right font-semibold">الحالة</th>
             </tr>
           </thead>
@@ -119,7 +119,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/">) {
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={9} className="px-3 py-8 text-center text-slate-400">
-                  لا توجد رهونات مطابقة
+                  لا توجد مشتريات مطابقة
                 </td>
               </tr>
             )}

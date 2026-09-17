@@ -9,9 +9,9 @@ const STYLES: Record<PledgeComputed["effectiveStatus"], string> = {
 
 const LABELS: Record<PledgeComputed["effectiveStatus"], string> = {
   active: "نشط",
-  due_soon: "يقترب الاستحقاق",
-  forfeited: "آلت للمحل",
-  redeemed: "مسترجعة",
+  due_soon: "يقترب انتهاء الاسترداد",
+  forfeited: "ملك المحل",
+  redeemed: "تم الاسترداد",
 };
 
 export default function StatusBadge({ status }: { status: PledgeComputed["effectiveStatus"] }) {

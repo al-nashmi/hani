@@ -11,7 +11,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
           </Link>
           <nav className="flex items-center gap-1 text-sm">
             <Link href="/" className="rounded-lg px-3 py-2 font-medium text-slate-700 hover:bg-slate-100">
-              الرهونات
+              المشتريات
             </Link>
             <Link href="/customers" className="rounded-lg px-3 py-2 font-medium text-slate-700 hover:bg-slate-100">
               العملاء
@@ -23,7 +23,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
               href="/pledges/new"
               className="rounded-lg bg-teal-700 px-3 py-2 font-medium text-white hover:bg-teal-800"
             >
-              + رهن جديد
+              + شراء جديد
             </Link>
             <a
               href="/api/export"

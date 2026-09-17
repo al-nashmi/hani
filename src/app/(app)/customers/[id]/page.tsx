@@ -20,7 +20,7 @@ export default async function CustomerDetailPage({ params }: PageProps<"/custome
           href={`/pledges/new?customer_id=${customer.id}`}
           className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800"
         >
-          + رهن جديد لهذا العميل
+          + شراء جديد من هذا العميل
         </Link>
       </div>
 
@@ -34,16 +34,16 @@ export default async function CustomerDetailPage({ params }: PageProps<"/custome
       </div>
 
       <div>
-        <h2 className="mb-3 text-lg font-semibold text-slate-800">سجل الرهونات</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-800">سجل المشتريات</h2>
         <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full min-w-[800px] text-sm">
             <thead className="bg-slate-50 text-slate-600">
               <tr>
-                <th className="px-3 py-2 text-right font-semibold">رقم العقد</th>
+                <th className="px-3 py-2 text-right font-semibold">رقم الفاتورة</th>
                 <th className="px-3 py-2 text-right font-semibold">القطعة</th>
-                <th className="px-3 py-2 text-right font-semibold">المبلغ الأصلي</th>
-                <th className="px-3 py-2 text-right font-semibold">تاريخ البدء</th>
-                <th className="px-3 py-2 text-right font-semibold">المستحق اليوم</th>
+                <th className="px-3 py-2 text-right font-semibold">مبلغ الشراء</th>
+                <th className="px-3 py-2 text-right font-semibold">تاريخ الشراء</th>
+                <th className="px-3 py-2 text-right font-semibold">مبلغ الاسترداد اليوم</th>
                 <th className="px-3 py-2 text-right font-semibold">الحالة</th>
               </tr>
             </thead>
@@ -70,7 +70,7 @@ export default async function CustomerDetailPage({ params }: PageProps<"/custome
               {pledges.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-3 py-8 text-center text-slate-400">
-                    لا يوجد رهونات لهذا العميل
+                    لا يوجد مشتريات لهذا العميل
                   </td>
                 </tr>
               )}

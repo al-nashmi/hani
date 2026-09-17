@@ -18,13 +18,13 @@ export async function GET() {
     const c = computePledge(p, today);
     const statusLabel = {
       active: "نشط",
-      due_soon: "يقترب الاستحقاق",
-      forfeited: "آلت للمحل",
-      redeemed: "مسترجعة",
+      due_soon: "يقترب انتهاء الاسترداد",
+      forfeited: "ملك المحل",
+      redeemed: "تم الاسترداد",
     }[c.effectiveStatus];
 
     return {
-      "رقم العقد": p.contract_number,
+      "رقم الفاتورة": p.contract_number,
       "اسم العميل": p.customer_full_name,
       "رقم الهوية": p.customer_national_id,
       "جوال العميل": p.customer_phone ?? "",
@@ -34,18 +34,18 @@ export async function GET() {
       "الرقم المرجعي": p.reference_number ?? "",
       "رقم الصندوق": p.box_number ?? "",
       "العائلة/المجموعة": p.family_group ?? "",
-      "مبلغ الرهن": Number(p.principal_amount),
-      "نسبة الرهن الشهرية %": Number(p.monthly_rate_percent),
-      "مدة الرهن (يوم)": p.period_days,
-      "تاريخ البدء": toISODateString(p.start_date),
-      "تاريخ الاستحقاق": c.endDate.toISOString().slice(0, 10),
+      "مبلغ الشراء": Number(p.principal_amount),
+      "نسبة الاسترداد الشهرية %": Number(p.monthly_rate_percent),
+      "مدة الاسترداد (يوم)": p.period_days,
+      "تاريخ الشراء": toISODateString(p.start_date),
+      "تاريخ انتهاء الاسترداد": c.endDate.toISOString().slice(0, 10),
       "الأيام المستهلكة": c.daysElapsed,
       "الأيام المتبقية": c.daysRemaining,
-      "الفائدة المتراكمة": Math.round(c.feeAccrued * 100) / 100,
-      "إجمالي المستحق اليوم": Math.round(c.totalDue * 100) / 100,
+      "قيمة الاسترداد المتراكمة": Math.round(c.feeAccrued * 100) / 100,
+      "إجمالي مبلغ الاسترداد اليوم": Math.round(c.totalDue * 100) / 100,
       الحالة: statusLabel,
-      "تاريخ الاسترجاع": toISODateString(p.redeemed_at),
-      "مبلغ التسوية": p.settlement_amount ?? "",
+      "تاريخ الاسترداد": toISODateString(p.redeemed_at),
+      "مبلغ الاسترداد النهائي": p.settlement_amount ?? "",
       ملاحظات: p.notes ?? "",
     };
   });
@@ -64,7 +64,7 @@ export async function GET() {
   const workbook = XLSX.utils.book_new();
   const pledgesSheet = XLSX.utils.json_to_sheet(pledgesSheetData);
   const customersSheet = XLSX.utils.json_to_sheet(customersSheetData);
-  XLSX.utils.book_append_sheet(workbook, pledgesSheet, "الرهونات");
+  XLSX.utils.book_append_sheet(workbook, pledgesSheet, "المشتريات");
   XLSX.utils.book_append_sheet(workbook, customersSheet, "العملاء");
 
   const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }) as Buffer;

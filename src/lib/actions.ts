@@ -207,19 +207,19 @@ export async function createPledgeFormAction(formData: FormData): Promise<{ erro
     return { error: "الرجاء تعبئة جميع الحقول المطلوبة" };
   }
   if (!customer_signature.startsWith("data:image/")) {
-    return { error: "توقيع العميل مطلوب" };
+    return { error: "توقيع البائع (العميل) مطلوب" };
   }
   if (customer_signature.length > 300_000) {
-    return { error: "توقيع العميل كبير جدًا، حاول توقيع أبسط" };
+    return { error: "التوقيع كبير جدًا، حاول توقيع أبسط" };
   }
   if (!Number.isFinite(principal_amount) || principal_amount <= 0) {
-    return { error: "مبلغ الرهن غير صحيح" };
+    return { error: "مبلغ الشراء غير صحيح" };
   }
   if (!Number.isFinite(monthly_rate_percent) || monthly_rate_percent < 0) {
-    return { error: "نسبة الرهن غير صحيحة" };
+    return { error: "نسبة الاسترداد غير صحيحة" };
   }
   if (!Number.isFinite(period_days) || period_days <= 0) {
-    return { error: "مدة الرهن غير صحيحة" };
+    return { error: "مدة الاسترداد غير صحيحة" };
   }
 
   const existing = (await sql`

@@ -25,7 +25,7 @@ export default function ContactLogTable({ logs }: { logs: ContactLogRow[] }) {
   if (logs.length === 0) {
     return (
       <p className="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-400">
-        لا يوجد تواصل مسجل بخصوص هذا الرهن بعد
+        لا يوجد تواصل مسجل بخصوص هذه الفاتورة بعد
       </p>
     );
   }

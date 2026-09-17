@@ -81,7 +81,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
           )}
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <h2 className="mb-3 font-semibold text-slate-800">توزيع الرهونات حسب الحالة</h2>
+          <h2 className="mb-3 font-semibold text-slate-800">توزيع المشتريات حسب الحالة</h2>
           {statusData.length > 0 ? (
             <StatusDistributionChart data={statusData} />
           ) : (
@@ -97,7 +97,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
             <thead className="bg-slate-50 text-slate-600">
               <tr>
                 <th className="px-3 py-2 text-right font-semibold">العميل</th>
-                <th className="px-3 py-2 text-right font-semibold">عدد الرهونات</th>
+                <th className="px-3 py-2 text-right font-semibold">عدد المشتريات</th>
                 <th className="px-3 py-2 text-right font-semibold">المبلغ المستثمر</th>
                 <th className="px-3 py-2 text-right font-semibold">الأرباح</th>
                 <th className="px-3 py-2 text-right font-semibold">العائد على الاستثمار</th>

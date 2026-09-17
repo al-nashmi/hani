@@ -21,7 +21,7 @@ export default function LoginPage() {
       >
         <div className="mb-6 text-center">
           <h1 className="text-xl font-bold text-teal-800">مجوهرات هاني النمر</h1>
-          <p className="mt-1 text-sm text-slate-500">نظام إدارة الرهونات</p>
+          <p className="mt-1 text-sm text-slate-500">نظام إدارة المشتريات</p>
         </div>
 
         <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="password">

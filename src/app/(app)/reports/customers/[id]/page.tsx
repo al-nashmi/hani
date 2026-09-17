@@ -48,21 +48,21 @@ export default async function CustomerReportPage({ params }: PageProps<"/reports
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-3 font-semibold text-slate-800">المستثمر مقابل الأرباح لكل رهن</h2>
+        <h2 className="mb-3 font-semibold text-slate-800">المستثمر مقابل الأرباح لكل فاتورة</h2>
         {chartData.length > 0 ? (
           <CustomerReportChart data={chartData} />
         ) : (
-          <p className="py-8 text-center text-sm text-slate-400">لا توجد رهونات لهذا العميل</p>
+          <p className="py-8 text-center text-sm text-slate-400">لا توجد مشتريات لهذا العميل</p>
         )}
       </div>
 
       <div>
-        <h2 className="mb-3 text-lg font-semibold text-slate-800">تفاصيل الرهونات</h2>
+        <h2 className="mb-3 text-lg font-semibold text-slate-800">تفاصيل المشتريات</h2>
         <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
           <table className="w-full min-w-[700px] text-sm">
             <thead className="bg-slate-50 text-slate-600">
               <tr>
-                <th className="px-3 py-2 text-right font-semibold">رقم العقد</th>
+                <th className="px-3 py-2 text-right font-semibold">رقم الفاتورة</th>
                 <th className="px-3 py-2 text-right font-semibold">القطعة</th>
                 <th className="px-3 py-2 text-right font-semibold">المبلغ المستثمر</th>
                 <th className="px-3 py-2 text-right font-semibold">الأرباح</th>
@@ -94,7 +94,7 @@ export default async function CustomerReportPage({ params }: PageProps<"/reports
               {pledges.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-3 py-8 text-center text-slate-400">
-                    لا توجد رهونات
+                    لا توجد مشتريات
                   </td>
                 </tr>
               )}

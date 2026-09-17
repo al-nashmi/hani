@@ -27,9 +27,9 @@ const COLORS = {
 
 const STATUS_LABELS: Record<string, string> = {
   active: "نشط",
-  due_soon: "يقترب الاستحقاق",
-  forfeited: "آلت للمحل",
-  redeemed: "مسترجعة",
+  due_soon: "يقترب انتهاء الاسترداد",
+  forfeited: "ملك المحل",
+  redeemed: "تم الاسترداد",
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -71,7 +71,7 @@ function StatusTooltip({ active, payload }: { active?: boolean; payload?: { payl
   return (
     <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-md" dir="rtl">
       <p className="font-semibold text-slate-800">{STATUS_LABELS[d.status] ?? d.status}</p>
-      <p className="text-slate-600">{d.count} رهن</p>
+      <p className="text-slate-600">{d.count} فاتورة</p>
     </div>
   );
 }

@@ -9,8 +9,8 @@ const tajawal = Tajawal({
 });
 
 export const metadata: Metadata = {
-  title: "مجوهرات هاني النمر - إدارة الرهونات",
-  description: "نظام تسجيل ومتابعة عمليات رهن الذهب والمجوهرات",
+  title: "مجوهرات هاني النمر - إدارة المشتريات",
+  description: "نظام تسجيل ومتابعة عمليات شراء واسترداد الذهب والمجوهرات",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

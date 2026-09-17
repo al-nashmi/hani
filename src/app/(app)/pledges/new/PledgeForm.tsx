@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import { createPledgeFormAction } from "@/lib/actions";
 import type { Customer } from "@/lib/db";
+import { formatSAR } from "@/lib/pledge-calc";
 import SignaturePad from "@/components/SignaturePad";
 
 const initialState: { error?: string } = {};
@@ -41,6 +42,16 @@ export default function PledgeForm({
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | undefined>(preselected);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Tracked (in addition to being normal form fields) so the sale
+  // declaration below can show the actual values as the owner types them.
+  const [newFullName, setNewFullName] = useState("");
+  const [newNationalId, setNewNationalId] = useState("");
+  const [itemDescription, setItemDescription] = useState("");
+  const [principalAmount, setPrincipalAmount] = useState("");
+  const [monthlyRate, setMonthlyRate] = useState("5");
+  const [periodDays, setPeriodDays] = useState("90");
+  const [startDate, setStartDate] = useState(todayStr());
+
   const matches = useMemo(
     () => (selectedCustomer ? [] : customers.filter((c) => matchesCustomer(c, searchQuery)).slice(0, 8)),
     [customers, searchQuery, selectedCustomer]
@@ -50,6 +61,10 @@ export default function PledgeForm({
     async (_prev: { error?: string }, formData: FormData) => createPledgeFormAction(formData),
     initialState
   );
+
+  const declarationName = selectedCustomer ? selectedCustomer.full_name : newFullName;
+  const declarationNationalId = selectedCustomer ? selectedCustomer.national_id : newNationalId;
+  const declarationPrice = principalAmount ? formatSAR(Number(principalAmount)) : "......";
 
   return (
     <form action={formAction} className="space-y-6">
@@ -141,8 +156,20 @@ export default function PledgeForm({
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="الاسم الكامل" name="new_full_name" required />
-            <Field label="رقم الهوية" name="new_national_id" required />
+            <Field
+              label="الاسم الكامل"
+              name="new_full_name"
+              required
+              value={newFullName}
+              onChange={(e) => setNewFullName(e.target.value)}
+            />
+            <Field
+              label="رقم الهوية"
+              name="new_national_id"
+              required
+              value={newNationalId}
+              onChange={(e) => setNewNationalId(e.target.value)}
+            />
             <Field label="الجنسية" name="new_nationality" />
             <Field label="رقم الجوال" name="new_phone" />
             <Field label="البريد الإلكتروني" name="new_email" type="email" />
@@ -153,15 +180,10 @@ export default function PledgeForm({
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-4 font-semibold text-slate-800">بيانات القطعة والرهن</h2>
+        <h2 className="mb-4 font-semibold text-slate-800">بيانات القطعة والشراء</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <Field
-              label="رقم العقد / الفاتورة"
-              name="contract_number"
-              required
-              defaultValue={nextContractNumber}
-            />
+            <Field label="رقم الفاتورة" name="contract_number" required defaultValue={nextContractNumber} />
             <p className="mt-1 text-xs text-slate-500">
               مُولَّد تلقائيًا. عدّله يدويًا فقط لتسجيل فاتورة قديمة بأثر رجعي.
             </p>
@@ -190,6 +212,8 @@ export default function PledgeForm({
               name="item_description"
               required
               rows={3}
+              value={itemDescription}
+              onChange={(e) => setItemDescription(e.target.value)}
               placeholder="مثال: سلسلة ذهب عيار 21 وزن 35 جرام..."
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
             />
@@ -198,10 +222,40 @@ export default function PledgeForm({
           <Field label="الرقم المرجعي" name="reference_number" />
           <Field label="رقم الصندوق" name="box_number" />
           <Field label="العائلة / المجموعة" name="family_group" />
-          <Field label="مبلغ الرهن (ريال)" name="principal_amount" type="number" step="0.01" required />
-          <Field label="نسبة الرهن الشهرية (%)" name="monthly_rate_percent" type="number" step="0.01" required defaultValue="5" />
-          <Field label="مدة الرهن (يوم)" name="period_days" type="number" required defaultValue="90" />
-          <Field label="تاريخ بدء الرهن" name="start_date" type="date" required defaultValue={todayStr()} />
+          <Field
+            label="مبلغ الشراء (ريال)"
+            name="principal_amount"
+            type="number"
+            step="0.01"
+            required
+            value={principalAmount}
+            onChange={(e) => setPrincipalAmount(e.target.value)}
+          />
+          <Field
+            label="نسبة الاسترداد الشهرية (%)"
+            name="monthly_rate_percent"
+            type="number"
+            step="0.01"
+            required
+            value={monthlyRate}
+            onChange={(e) => setMonthlyRate(e.target.value)}
+          />
+          <Field
+            label="مدة الاسترداد (يوم)"
+            name="period_days"
+            type="number"
+            required
+            value={periodDays}
+            onChange={(e) => setPeriodDays(e.target.value)}
+          />
+          <Field
+            label="تاريخ الشراء"
+            name="start_date"
+            type="date"
+            required
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
           <div className="sm:col-span-2">
             <label className="mb-1 block text-sm font-medium text-slate-700">ملاحظات</label>
             <textarea
@@ -214,7 +268,22 @@ export default function PledgeForm({
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <SignaturePad name="customer_signature" />
+        <h2 className="mb-3 font-semibold text-slate-800">صيغة المبايعة</h2>
+        <p className="whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm leading-relaxed text-slate-700">
+          أقر أنا الموقّع أدناه <b>{declarationName || "......................"}</b>، صاحب الهوية رقم{" "}
+          <b>{declarationNationalId || "......................"}</b>، بكامل رضائي واختياري وحالتي المعتبرة شرعًا
+          ونظامًا، بأنني بعت بتاريخ <b>{startDate}</b> إلى معرض هاني النمر للساعات والمجوهرات القطعة الموصوفة أعلاه (
+          <b>{itemDescription || "......................"}</b>) بثمن قدره <b>{declarationPrice}</b>، وقد استلمت
+          الثمن المذكور كاملاً، ولا خيار لي أو لأي طرف في هذا البيع. ويحق لي إعادة شراء القطعة ذاتها خلال مدة أقصاها{" "}
+          <b>{periodDays || "......"}</b> يومًا من تاريخه، مقابل سداد كامل الثمن المذكور مضافًا إليه نسبة{" "}
+          <b>{monthlyRate || "......"}%</b> شهريًا عن المدة المنقضية. وفي حال عدم إعادة الشراء خلال هذه المدة، تبقى
+          القطعة ملكًا خالصًا لمعرض هاني النمر دون الحاجة لأي إشعار أو إجراء إضافي، ولا يحق لي أو لمن يخلفني أي
+          مطالبة بها بعد ذلك.
+        </p>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-5">
+        <SignaturePad name="customer_signature" label="توقيع البائع (العميل)" />
       </section>
 
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
@@ -224,7 +293,7 @@ export default function PledgeForm({
         disabled={pending}
         className="rounded-lg bg-teal-700 px-6 py-2.5 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-60"
       >
-        {pending ? "جارٍ الحفظ..." : "حفظ عملية الرهن"}
+        {pending ? "جارٍ الحفظ..." : "حفظ عملية الشراء"}
       </button>
     </form>
   );
@@ -237,6 +306,8 @@ function Field({
   required = false,
   step,
   defaultValue,
+  value,
+  onChange,
 }: {
   label: string;
   name: string;
@@ -244,6 +315,8 @@ function Field({
   required?: boolean;
   step?: string;
   defaultValue?: string;
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
   return (
     <div>
@@ -256,7 +329,9 @@ function Field({
         type={type}
         required={required}
         step={step}
-        defaultValue={defaultValue}
+        defaultValue={value === undefined ? defaultValue : undefined}
+        value={value}
+        onChange={onChange}
         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
       />
     </div>
