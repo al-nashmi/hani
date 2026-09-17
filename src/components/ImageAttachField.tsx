@@ -51,7 +51,6 @@ export default function ImageAttachField({
         <input
           type="file"
           accept="image/*"
-          capture="environment"
           onChange={handleFile}
           className="block w-full text-sm text-slate-600 file:ml-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200"
         />
