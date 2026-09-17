@@ -16,6 +16,9 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
             <Link href="/customers" className="rounded-lg px-3 py-2 font-medium text-slate-700 hover:bg-slate-100">
               العملاء
             </Link>
+            <Link href="/reports" className="rounded-lg px-3 py-2 font-medium text-slate-700 hover:bg-slate-100">
+              التقارير
+            </Link>
             <Link
               href="/pledges/new"
               className="rounded-lg bg-teal-700 px-3 py-2 font-medium text-white hover:bg-teal-800"
