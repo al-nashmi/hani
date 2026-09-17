@@ -62,7 +62,7 @@ export type Pledge = {
   notes: string | null;
   customer_signature: string | null;
   receipt_signature: string | null;
-  id_photo: string | null;
+  item_photo: string | null;
   receiver_full_name: string | null;
   receiver_national_id: string | null;
   receiver_id_photo: string | null;
@@ -99,5 +99,7 @@ export type ShopProfile = {
   commercial_registration: string | null;
   phone: string | null;
   address: string | null;
+  signature: string | null;
+  stamp: string | null;
   updated_at: string | Date;
 };

@@ -293,7 +293,10 @@ export default function PledgeForm({
 
       <section className="rounded-xl border border-slate-200 bg-white p-5 space-y-4">
         <SignaturePad name="customer_signature" label="توقيع البائع (العميل)" />
-        <ImageAttachField name="id_photo" label="صورة الهوية (تصوير أو إرفاق) - اختياري" />
+        <ImageAttachField
+          name="item_photo"
+          label="صورة البضاعة (تصوير أو إرفاق) - يفضّل إظهار بطاقة العميل مع البضاعة في نفس الصورة - اختياري"
+        />
       </section>
 
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}

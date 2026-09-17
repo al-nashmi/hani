@@ -3,6 +3,7 @@ import type { PledgeComputed } from "@/lib/pledge-calc";
 const STYLES: Record<PledgeComputed["effectiveStatus"], string> = {
   active: "bg-emerald-100 text-emerald-800",
   due_soon: "bg-amber-100 text-amber-800",
+  overdue: "bg-orange-100 text-orange-800",
   forfeited: "bg-red-100 text-red-800",
   redeemed: "bg-slate-200 text-slate-700",
 };
@@ -10,6 +11,7 @@ const STYLES: Record<PledgeComputed["effectiveStatus"], string> = {
 const LABELS: Record<PledgeComputed["effectiveStatus"], string> = {
   active: "نشط",
   due_soon: "يقترب انتهاء الاسترداد",
+  overdue: "متأخرة",
   forfeited: "ملك المحل",
   redeemed: "تم الاسترداد",
 };

@@ -7,6 +7,7 @@ const FILTERS = [
   { key: "all", label: "الكل" },
   { key: "active", label: "نشط" },
   { key: "due_soon", label: "يقترب انتهاء الاسترداد" },
+  { key: "overdue", label: "متأخرة" },
   { key: "forfeited", label: "ملك المحل" },
   { key: "redeemed", label: "تم الاسترداد" },
 ] as const;
@@ -23,7 +24,9 @@ export default async function DashboardPage({ searchParams }: PageProps<"/">) {
     filter === "all" ? rows : rows.filter((r) => r.computed.effectiveStatus === filter);
 
   const totals = {
-    activeCount: rows.filter((r) => r.computed.effectiveStatus === "active" || r.computed.effectiveStatus === "due_soon").length,
+    activeCount: rows.filter((r) =>
+      ["active", "due_soon", "overdue"].includes(r.computed.effectiveStatus)
+    ).length,
     principalOutstanding: rows
       .filter((r) => r.pledge.status === "active")
       .reduce((sum, r) => sum + Number(r.pledge.principal_amount), 0),

@@ -19,6 +19,7 @@ export async function GET() {
     const statusLabel = {
       active: "نشط",
       due_soon: "يقترب انتهاء الاسترداد",
+      overdue: "متأخرة",
       forfeited: "ملك المحل",
       redeemed: "تم الاسترداد",
     }[c.effectiveStatus];

@@ -28,7 +28,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/reports"
     const status = computePledge(p, today).effectiveStatus;
     statusCounts.set(status, (statusCounts.get(status) ?? 0) + 1);
   }
-  const statusData: StatusDatum[] = ["active", "due_soon", "forfeited", "redeemed"]
+  const statusData: StatusDatum[] = ["active", "due_soon", "overdue", "forfeited", "redeemed"]
     .map((status) => ({ status, count: statusCounts.get(status) ?? 0 }))
     .filter((d) => d.count > 0);
 

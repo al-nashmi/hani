@@ -203,7 +203,7 @@ export async function createPledgeFormAction(formData: FormData): Promise<{ erro
   const start_date = String(formData.get("start_date") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
   const customer_signature = String(formData.get("customer_signature") ?? "").trim();
-  const id_photo = String(formData.get("id_photo") ?? "").trim();
+  const item_photo = String(formData.get("item_photo") ?? "").trim();
 
   if (!customer_id || !contract_number || !item_type || !item_description || !start_date) {
     return { error: "الرجاء تعبئة جميع الحقول المطلوبة" };
@@ -214,11 +214,11 @@ export async function createPledgeFormAction(formData: FormData): Promise<{ erro
   if (customer_signature.length > 300_000) {
     return { error: "التوقيع كبير جدًا، حاول توقيع أبسط" };
   }
-  if (id_photo && !id_photo.startsWith("data:image/")) {
-    return { error: "صيغة صورة الهوية غير صحيحة" };
+  if (item_photo && !item_photo.startsWith("data:image/")) {
+    return { error: "صيغة صورة البضاعة غير صحيحة" };
   }
-  if (id_photo.length > 2_000_000) {
-    return { error: "حجم صورة الهوية كبير جدًا" };
+  if (item_photo.length > 2_000_000) {
+    return { error: "حجم صورة البضاعة كبير جدًا" };
   }
   if (!Number.isFinite(principal_amount) || principal_amount <= 0) {
     return { error: "مبلغ الشراء غير صحيح" };
@@ -241,13 +241,13 @@ export async function createPledgeFormAction(formData: FormData): Promise<{ erro
     INSERT INTO pledges (
       contract_number, customer_id, item_type, item_description, weight_grams,
       reference_number, box_number, family_group, principal_amount,
-      monthly_rate_percent, period_days, start_date, notes, customer_signature, id_photo
+      monthly_rate_percent, period_days, start_date, notes, customer_signature, item_photo
     ) VALUES (
       ${contract_number}, ${customer_id}, ${item_type}, ${item_description},
       ${weight_grams ? Number(weight_grams) : null}, ${reference_number || null},
       ${box_number || null}, ${family_group || null}, ${principal_amount},
       ${monthly_rate_percent}, ${period_days}, ${start_date}, ${notes || null}, ${customer_signature},
-      ${id_photo || null}
+      ${item_photo || null}
     )
     RETURNING id
   `) as { id: number }[];
@@ -375,6 +375,8 @@ export async function getShopProfile(): Promise<ShopProfile> {
       commercial_registration: null,
       phone: null,
       address: null,
+      signature: null,
+      stamp: null,
       updated_at: new Date().toISOString(),
     }
   );
@@ -385,19 +387,36 @@ export async function updateShopProfileFormAction(formData: FormData): Promise<{
   const commercial_registration = String(formData.get("commercial_registration") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
   const address = String(formData.get("address") ?? "").trim();
+  const signature = String(formData.get("signature") ?? "").trim();
+  const stamp = String(formData.get("stamp") ?? "").trim();
 
   if (!name) {
     return { error: "اسم المحل مطلوب" };
   }
+  if (signature && !signature.startsWith("data:image/")) {
+    return { error: "صيغة توقيع المحل غير صحيحة" };
+  }
+  if (signature.length > 2_000_000) {
+    return { error: "حجم صورة توقيع المحل كبير جدًا" };
+  }
+  if (stamp && !stamp.startsWith("data:image/")) {
+    return { error: "صيغة ختم المحل غير صحيحة" };
+  }
+  if (stamp.length > 2_000_000) {
+    return { error: "حجم صورة ختم المحل كبير جدًا" };
+  }
 
   await sql`
-    INSERT INTO shop_profile (id, name, commercial_registration, phone, address, updated_at)
-    VALUES (1, ${name}, ${commercial_registration || null}, ${phone || null}, ${address || null}, now())
+    INSERT INTO shop_profile (id, name, commercial_registration, phone, address, signature, stamp, updated_at)
+    VALUES (1, ${name}, ${commercial_registration || null}, ${phone || null}, ${address || null},
+      ${signature || null}, ${stamp || null}, now())
     ON CONFLICT (id) DO UPDATE SET
       name = EXCLUDED.name,
       commercial_registration = EXCLUDED.commercial_registration,
       phone = EXCLUDED.phone,
       address = EXCLUDED.address,
+      signature = EXCLUDED.signature,
+      stamp = EXCLUDED.stamp,
       updated_at = now()
   `;
 

@@ -7,13 +7,15 @@ export default function ImageAttachField({
   name,
   label,
   required = false,
+  defaultValue,
 }: {
   name: string;
   label: string;
   required?: boolean;
+  defaultValue?: string | null;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(defaultValue ?? null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -56,7 +58,7 @@ export default function ImageAttachField({
         />
       )}
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
-      <input ref={inputRef} type="hidden" name={name} />
+      <input ref={inputRef} type="hidden" name={name} defaultValue={defaultValue ?? ""} />
     </div>
   );
 }

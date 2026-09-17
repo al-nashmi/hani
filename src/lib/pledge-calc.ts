@@ -32,7 +32,7 @@ export type PledgeComputed = {
   daysRemaining: number;
   feeAccrued: number;
   totalDue: number;
-  effectiveStatus: "active" | "redeemed" | "forfeited" | "due_soon";
+  effectiveStatus: "active" | "redeemed" | "forfeited" | "due_soon" | "overdue";
   isOverdue: boolean;
 };
 
@@ -52,9 +52,12 @@ export function computePledge(pledge: Pledge, asOf: Date = todayUtc()): PledgeCo
 
   const isOverdue = pledge.status === "active" && daysElapsedRaw >= pledge.period_days;
 
+  // Going overdue never auto-forfeits the pledge — the item only becomes the
+  // shop's property once the owner explicitly confirms it (forfeitPledgeAction).
   let effectiveStatus: PledgeComputed["effectiveStatus"];
   if (pledge.status === "redeemed") effectiveStatus = "redeemed";
-  else if (pledge.status === "forfeited" || isOverdue) effectiveStatus = "forfeited";
+  else if (pledge.status === "forfeited") effectiveStatus = "forfeited";
+  else if (isOverdue) effectiveStatus = "overdue";
   else if (daysRemaining <= 7) effectiveStatus = "due_soon";
   else effectiveStatus = "active";
 

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getPledge, getShopProfile } from "@/lib/actions";
 import { formatDate, formatSAR } from "@/lib/pledge-calc";
 import PrintButton from "../PrintButton";
+import ShopStamp from "@/components/ShopStamp";
 
 export default async function PledgeReceiptPage({ params }: PageProps<"/pledges/[id]/receipt">) {
   const { id } = await params;
@@ -102,7 +103,7 @@ export default async function PledgeReceiptPage({ params }: PageProps<"/pledges/
           </div>
           <div>
             <p className="mb-1 text-slate-500">توقيع مسلّم القطعة ({shopProfile.name})</p>
-            <div className="h-20 border-b border-slate-400" />
+            <ShopStamp signature={shopProfile.signature} stamp={shopProfile.stamp} />
           </div>
         </div>
       </div>

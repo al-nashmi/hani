@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getPledge, getShopProfile } from "@/lib/actions";
 import { computePledge, formatDate, formatSAR, todayUtc } from "@/lib/pledge-calc";
 import PrintButton from "../PrintButton";
+import ShopStamp from "@/components/ShopStamp";
 
 export default async function PledgeInvoicePage({ params }: PageProps<"/pledges/[id]/invoice">) {
   const { id } = await params;
@@ -107,13 +108,13 @@ export default async function PledgeInvoicePage({ params }: PageProps<"/pledges/
             ) : (
               <div className="h-20 border-b border-slate-400" />
             )}
-            {pledge.id_photo && (
+            {pledge.item_photo && (
               <div className="mt-3">
-                <p className="mb-1 text-slate-500">صورة هوية العميل</p>
+                <p className="mb-1 text-slate-500">صورة البضاعة</p>
                 {/* eslint-disable-next-line @next/next/no-img-element -- stored base64 photo, not an optimizable asset */}
                 <img
-                  src={pledge.id_photo}
-                  alt="صورة الهوية"
+                  src={pledge.item_photo}
+                  alt="صورة البضاعة"
                   className="h-32 rounded-lg border border-slate-300 object-contain"
                 />
               </div>
@@ -121,7 +122,7 @@ export default async function PledgeInvoicePage({ params }: PageProps<"/pledges/
           </div>
           <div>
             <p className="mb-1 text-slate-500">توقيع المشتري ({shopProfile.name})</p>
-            <div className="h-20 border-b border-slate-400" />
+            <ShopStamp signature={shopProfile.signature} stamp={shopProfile.stamp} />
           </div>
         </div>
       </div>

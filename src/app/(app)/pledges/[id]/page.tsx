@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getPledge, listContactLogsForPledge, forfeitPledgeAction } from "@/lib/actions";
+import { getPledge, listContactLogsForPledge } from "@/lib/actions";
 import { computePledge, formatDate, formatDateTime, formatSAR, todayUtc } from "@/lib/pledge-calc";
 import StatusBadge from "@/components/StatusBadge";
 import ContactLogForm from "./ContactLogForm";
 import ContactLogTable from "./ContactLogTable";
+import ForfeitButton from "./ForfeitButton";
 
 const CONTACT_METHOD_LABELS: Record<string, string> = {
   phone: "مكالمة هاتفية",
@@ -107,24 +108,20 @@ export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[
         </section>
       )}
 
-      {computed.effectiveStatus === "forfeited" && pledge.status === "active" && (
-        <section className="rounded-xl border border-red-200 bg-red-50 p-5">
-          <p className="text-sm text-red-800">
-            انتهت مهلة إعادة الشراء دون أن يستردّ العميل القطعة، وبموجب شروط العقد تبقى ملكًا خالصًا للمحل ويسقط حق
-            العميل في إعادة شرائها.
+      {computed.isOverdue && pledge.status === "active" && (
+        <section className="rounded-xl border border-orange-200 bg-orange-50 p-5">
+          <p className="text-sm text-orange-900">
+            تجاوزت الفاتورة مدة الاسترداد ({pledge.period_days} يوم) ولم يقم العميل باسترداد القطعة بعد. القطعة لا
+            تزال في حالة <b>متأخرة</b> ولم تنتقل ملكيتها للمحل، ويمكن للعميل استردادها حتى الآن. الملكية لا تنتقل
+            للمحل إلا إذا قررت إنهاء العملية بالضغط على الزر أدناه.
           </p>
-          <form action={forfeitPledgeAction.bind(null, pledge.id)} className="mt-3">
-            <button
-              type="submit"
-              className="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800"
-            >
-              تثبيت ملكية المحل في السجل
-            </button>
-          </form>
+          <div className="mt-3">
+            <ForfeitButton pledgeId={pledge.id} />
+          </div>
         </section>
       )}
 
-      {pledge.status === "active" && !computed.isOverdue && (
+      {pledge.status === "active" && (
         <Link
           href={`/pledges/${pledge.id}/redeem`}
           className="inline-block rounded-lg bg-emerald-700 px-6 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800"

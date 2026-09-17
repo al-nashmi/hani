@@ -9,7 +9,7 @@ export default async function RedeemPledgePage({ params }: PageProps<"/pledges/[
   if (!pledge) notFound();
 
   const computed = computePledge(pledge, todayUtc());
-  if (pledge.status !== "active" || computed.isOverdue) {
+  if (pledge.status !== "active") {
     redirect(`/pledges/${pledge.id}`);
   }
 

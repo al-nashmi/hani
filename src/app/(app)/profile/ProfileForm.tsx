@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { updateShopProfileFormAction } from "@/lib/actions";
 import type { ShopProfile } from "@/lib/db";
+import ImageAttachField from "@/components/ImageAttachField";
 
 const initialState: { error?: string } = {};
 
@@ -33,6 +34,9 @@ export default function ProfileForm({ profile }: { profile: ShopProfile }) {
           className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
         />
       </div>
+
+      <ImageAttachField name="signature" label="توقيع المحل" defaultValue={profile.signature} />
+      <ImageAttachField name="stamp" label="ختم المحل" defaultValue={profile.stamp} />
 
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
 

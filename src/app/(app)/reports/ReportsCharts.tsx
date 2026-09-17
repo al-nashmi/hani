@@ -28,6 +28,7 @@ const COLORS = {
 const STATUS_LABELS: Record<string, string> = {
   active: "نشط",
   due_soon: "يقترب انتهاء الاسترداد",
+  overdue: "متأخرة",
   forfeited: "ملك المحل",
   redeemed: "تم الاسترداد",
 };
@@ -35,6 +36,7 @@ const STATUS_LABELS: Record<string, string> = {
 const STATUS_COLORS: Record<string, string> = {
   active: COLORS.good,
   due_soon: COLORS.warning,
+  overdue: "#e8590c",
   forfeited: COLORS.critical,
   redeemed: COLORS.neutral,
 };
