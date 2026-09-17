@@ -1,10 +1,30 @@
-import { neon } from "@neondatabase/serverless";
+import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL is not set");
+let cached: NeonQueryFunction<false, false> | undefined;
+
+function getSql(): NeonQueryFunction<false, false> {
+  if (!cached) {
+    if (!process.env.DATABASE_URL) {
+      throw new Error("DATABASE_URL is not set");
+    }
+    cached = neon(process.env.DATABASE_URL);
+  }
+  return cached;
 }
 
-export const sql = neon(process.env.DATABASE_URL);
+// Lazy so importing this module (e.g. during Next.js build-time page-data
+// collection) doesn't require DATABASE_URL to already be set.
+export const sql: NeonQueryFunction<false, false> = new Proxy(
+  (() => {}) as unknown as NeonQueryFunction<false, false>,
+  {
+    apply(_target, _thisArg, args) {
+      return (getSql() as unknown as (...a: unknown[]) => unknown)(...args);
+    },
+    get(_target, prop) {
+      return Reflect.get(getSql(), prop);
+    },
+  }
+);
 
 export type Customer = {
   id: number;
