@@ -12,7 +12,7 @@ import {
   type ShopProfile,
 } from "./db";
 import { checkPassword, createSessionToken, SESSION_COOKIE } from "./auth";
-import { computePledge, todayUtc } from "./pledge-calc";
+import { computePledge, formatDate, formatSAR, todayUtc } from "./pledge-calc";
 
 const CONTACT_METHODS: ContactMethod[] = ["phone", "whatsapp", "sms", "in_person", "other"];
 
@@ -127,6 +127,72 @@ export async function listPledges(filter?: {
     LIMIT 1000
   `) as PledgeWithCustomer[];
   return rows;
+}
+
+// ---------- Reminders ----------
+
+export type ReminderItem = {
+  pledgeId: number;
+  contractNumber: string;
+  customerName: string;
+  daysRemaining: number;
+  isOverdue: boolean;
+  whatsappUrl: string | null;
+};
+
+/** Saudi mobile numbers in this DB are stored inconsistently (with/without a leading 0 or 966); best-effort normalize to E.164 digits for wa.me. */
+function normalizeSaudiPhone(raw: string): string | null {
+  let digits = raw.replace(/\D/g, "");
+  if (!digits) return null;
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  if (!digits.startsWith("966")) {
+    if (digits.startsWith("0")) digits = digits.slice(1);
+    digits = `966${digits}`;
+  }
+  return digits;
+}
+
+/** Pledges whose redemption period ends within the next 15 days (not yet overdue), for the reminder notification bell. */
+export async function listReminders(): Promise<ReminderItem[]> {
+  const rows = (await sql`
+    SELECT p.*, c.full_name AS customer_full_name, c.national_id AS customer_national_id, c.phone AS customer_phone
+    FROM pledges p
+    JOIN customers c ON c.id = p.customer_id
+    WHERE p.status = 'active'
+      AND (p.start_date::date + (p.period_days || ' days')::interval)
+        BETWEEN CURRENT_DATE AND (CURRENT_DATE + INTERVAL '15 days')
+    ORDER BY (p.start_date::date + (p.period_days || ' days')::interval) ASC
+    LIMIT 50
+  `) as PledgeWithCustomer[];
+
+  const shopProfile = await getShopProfile();
+  const today = todayUtc();
+
+  return rows.map((p) => {
+    const computed = computePledge(p, today);
+    const message =
+      `مرحبًا ${p.customer_full_name}،\n` +
+      `نود تذكيركم بأن فترة استرداد القطعة الخاصة بفاتورة رقم ${p.contract_number} (${p.item_description}) ` +
+      (computed.isOverdue
+        ? "قد انتهت."
+        : `ستنتهي خلال ${computed.daysRemaining} يوم، بتاريخ ${formatDate(computed.endDate)}.`) +
+      `\nالمبلغ المطلوب للاسترداد اليوم: ${formatSAR(computed.totalDue)}.` +
+      `\nيرجى التواصل معنا لاسترداد القطعة أو تجديد المدة.\n${shopProfile.name}`;
+
+    const normalizedPhone = p.customer_phone ? normalizeSaudiPhone(p.customer_phone) : null;
+    const whatsappUrl = normalizedPhone
+      ? `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`
+      : null;
+
+    return {
+      pledgeId: p.id,
+      contractNumber: p.contract_number,
+      customerName: p.customer_full_name,
+      daysRemaining: computed.daysRemaining,
+      isOverdue: computed.isOverdue,
+      whatsappUrl,
+    };
+  });
 }
 
 export async function getPledge(id: number): Promise<PledgeWithCustomer | null> {
