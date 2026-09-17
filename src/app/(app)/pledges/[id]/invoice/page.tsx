@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getPledge } from "@/lib/actions";
 import { computePledge, formatDate, formatSAR, todayUtc } from "@/lib/pledge-calc";
-import PrintButton from "./PrintButton";
+import PrintButton from "../PrintButton";
 
 export default async function PledgeInvoicePage({ params }: PageProps<"/pledges/[id]/invoice">) {
   const { id } = await params;
@@ -84,11 +84,9 @@ export default async function PledgeInvoicePage({ params }: PageProps<"/pledges/
             <b>{pledge.customer_national_id}</b>، بكامل رضائي واختياري وحالتي المعتبرة شرعًا ونظامًا، بأنني بعت
             بتاريخ <b>{formatDate(pledge.start_date)}</b> إلى معرض هاني النمر للساعات والمجوهرات القطعة الموصوفة
             أعلاه (<b>{pledge.item_description}</b>) بثمن قدره{" "}
-            <b>{formatSAR(Number(pledge.principal_amount))}</b>، وقد استلمت الثمن المذكور كاملاً، ولا خيار لي أو
-            لأي طرف في هذا البيع. ويحق لي إعادة شراء القطعة ذاتها خلال مدة أقصاها <b>{pledge.period_days}</b> يومًا
-            من تاريخه، مقابل سداد كامل الثمن المذكور مضافًا إليه نسبة <b>{pledge.monthly_rate_percent}%</b> شهريًا
-            عن المدة المنقضية. وفي حال عدم إعادة الشراء خلال هذه المدة، تبقى القطعة ملكًا خالصًا لمعرض هاني النمر
-            دون الحاجة لأي إشعار أو إجراء إضافي، ولا يحق لي أو لمن يخلفني أي مطالبة بها بعد ذلك.
+            <b>{formatSAR(Number(pledge.principal_amount))}</b>، وقد استلمت الثمن المذكور كاملاً، وذلك بيعًا باتًا
+            ونهائيًا لا رجعة فيه، انتقلت به ملكية القطعة المذكورة إلى معرض هاني النمر للساعات والمجوهرات بشكل كامل
+            ونهائي من تاريخه، ولا خيار لي أو لأي طرف في هذا البيع.
           </p>
         </div>
 
@@ -100,6 +98,17 @@ export default async function PledgeInvoicePage({ params }: PageProps<"/pledges/
               <img src={pledge.customer_signature} alt="توقيع البائع" className="h-20 border-b border-slate-400" />
             ) : (
               <div className="h-20 border-b border-slate-400" />
+            )}
+            {pledge.id_photo && (
+              <div className="mt-3">
+                <p className="mb-1 text-slate-500">صورة هوية العميل</p>
+                {/* eslint-disable-next-line @next/next/no-img-element -- stored base64 photo, not an optimizable asset */}
+                <img
+                  src={pledge.id_photo}
+                  alt="صورة الهوية"
+                  className="h-32 rounded-lg border border-slate-300 object-contain"
+                />
+              </div>
             )}
           </div>
           <div>

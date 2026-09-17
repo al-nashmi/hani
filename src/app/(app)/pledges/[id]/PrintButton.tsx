@@ -1,11 +1,13 @@
 "use client";
 
-export default function PrintButton() {
+export default function PrintButton({
+  hint = 'اضغط طباعة، ثم اختر "حفظ كـ PDF" (Save as PDF) من قائمة الطابعة لتنزيل الملف.',
+}: {
+  hint?: string;
+}) {
   return (
     <div className="print:hidden mb-4 flex items-center justify-between">
-      <p className="text-sm text-slate-500">
-        اضغط طباعة، ثم اختر &quot;حفظ كـ PDF&quot; (Save as PDF) من قائمة الطابعة لتنزيل الفاتورة.
-      </p>
+      <p className="text-sm text-slate-500">{hint}</p>
       <button
         onClick={() => window.print()}
         className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800"

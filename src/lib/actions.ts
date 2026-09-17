@@ -202,6 +202,7 @@ export async function createPledgeFormAction(formData: FormData): Promise<{ erro
   const start_date = String(formData.get("start_date") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
   const customer_signature = String(formData.get("customer_signature") ?? "").trim();
+  const id_photo = String(formData.get("id_photo") ?? "").trim();
 
   if (!customer_id || !contract_number || !item_type || !item_description || !start_date) {
     return { error: "الرجاء تعبئة جميع الحقول المطلوبة" };
@@ -211,6 +212,12 @@ export async function createPledgeFormAction(formData: FormData): Promise<{ erro
   }
   if (customer_signature.length > 300_000) {
     return { error: "التوقيع كبير جدًا، حاول توقيع أبسط" };
+  }
+  if (id_photo && !id_photo.startsWith("data:image/")) {
+    return { error: "صيغة صورة الهوية غير صحيحة" };
+  }
+  if (id_photo.length > 2_000_000) {
+    return { error: "حجم صورة الهوية كبير جدًا" };
   }
   if (!Number.isFinite(principal_amount) || principal_amount <= 0) {
     return { error: "مبلغ الشراء غير صحيح" };
@@ -233,12 +240,13 @@ export async function createPledgeFormAction(formData: FormData): Promise<{ erro
     INSERT INTO pledges (
       contract_number, customer_id, item_type, item_description, weight_grams,
       reference_number, box_number, family_group, principal_amount,
-      monthly_rate_percent, period_days, start_date, notes, customer_signature
+      monthly_rate_percent, period_days, start_date, notes, customer_signature, id_photo
     ) VALUES (
       ${contract_number}, ${customer_id}, ${item_type}, ${item_description},
       ${weight_grams ? Number(weight_grams) : null}, ${reference_number || null},
       ${box_number || null}, ${family_group || null}, ${principal_amount},
-      ${monthly_rate_percent}, ${period_days}, ${start_date}, ${notes || null}, ${customer_signature}
+      ${monthly_rate_percent}, ${period_days}, ${start_date}, ${notes || null}, ${customer_signature},
+      ${id_photo || null}
     )
     RETURNING id
   `) as { id: number }[];
@@ -246,17 +254,36 @@ export async function createPledgeFormAction(formData: FormData): Promise<{ erro
   redirect(`/pledges/${rows[0].id}`);
 }
 
-export async function redeemPledgeAction(pledgeId: number): Promise<void> {
+export async function redeemPledgeFormAction(formData: FormData): Promise<{ error?: string }> {
+  const pledgeId = Number(formData.get("pledge_id"));
+  const receipt_signature = String(formData.get("receipt_signature") ?? "").trim();
+
+  if (!pledgeId) {
+    return { error: "بيانات غير صحيحة" };
+  }
+  if (!receipt_signature.startsWith("data:image/")) {
+    return { error: "توقيع العميل على سند الاستلام مطلوب" };
+  }
+  if (receipt_signature.length > 300_000) {
+    return { error: "التوقيع كبير جدًا، حاول توقيع أبسط" };
+  }
+
   const pledge = await getPledge(pledgeId);
-  if (!pledge || pledge.status !== "active") return;
+  if (!pledge || pledge.status !== "active") {
+    return { error: "لا يمكن تسجيل إعادة الشراء لهذه الفاتورة" };
+  }
+
   const computed = computePledge(pledge, todayUtc());
   const settlement = Math.round(computed.totalDue * 100) / 100;
+
   await sql`
     UPDATE pledges
-    SET status = 'redeemed', redeemed_at = CURRENT_DATE, settlement_amount = ${settlement}, updated_at = now()
+    SET status = 'redeemed', redeemed_at = CURRENT_DATE, settlement_amount = ${settlement},
+        receipt_signature = ${receipt_signature}, updated_at = now()
     WHERE id = ${pledgeId}
   `;
-  redirect(`/pledges/${pledgeId}`);
+
+  redirect(`/pledges/${pledgeId}/receipt`);
 }
 
 export async function forfeitPledgeAction(pledgeId: number): Promise<void> {

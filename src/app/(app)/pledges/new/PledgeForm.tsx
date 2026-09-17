@@ -5,6 +5,7 @@ import { createPledgeFormAction } from "@/lib/actions";
 import type { Customer } from "@/lib/db";
 import { formatSAR } from "@/lib/pledge-calc";
 import SignaturePad from "@/components/SignaturePad";
+import ImageAttachField from "@/components/ImageAttachField";
 
 const initialState: { error?: string } = {};
 
@@ -274,16 +275,14 @@ export default function PledgeForm({
           <b>{declarationNationalId || "......................"}</b>، بكامل رضائي واختياري وحالتي المعتبرة شرعًا
           ونظامًا، بأنني بعت بتاريخ <b>{startDate}</b> إلى معرض هاني النمر للساعات والمجوهرات القطعة الموصوفة أعلاه (
           <b>{itemDescription || "......................"}</b>) بثمن قدره <b>{declarationPrice}</b>، وقد استلمت
-          الثمن المذكور كاملاً، ولا خيار لي أو لأي طرف في هذا البيع. ويحق لي إعادة شراء القطعة ذاتها خلال مدة أقصاها{" "}
-          <b>{periodDays || "......"}</b> يومًا من تاريخه، مقابل سداد كامل الثمن المذكور مضافًا إليه نسبة{" "}
-          <b>{monthlyRate || "......"}%</b> شهريًا عن المدة المنقضية. وفي حال عدم إعادة الشراء خلال هذه المدة، تبقى
-          القطعة ملكًا خالصًا لمعرض هاني النمر دون الحاجة لأي إشعار أو إجراء إضافي، ولا يحق لي أو لمن يخلفني أي
-          مطالبة بها بعد ذلك.
+          الثمن المذكور كاملاً، وذلك بيعًا باتًا ونهائيًا لا رجعة فيه، انتقلت به ملكية القطعة المذكورة إلى معرض هاني
+          النمر للساعات والمجوهرات بشكل كامل ونهائي من تاريخه، ولا خيار لي أو لأي طرف في هذا البيع.
         </p>
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
+      <section className="rounded-xl border border-slate-200 bg-white p-5 space-y-4">
         <SignaturePad name="customer_signature" label="توقيع البائع (العميل)" />
+        <ImageAttachField name="id_photo" label="صورة الهوية (تصوير أو إرفاق) - اختياري" />
       </section>
 
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}

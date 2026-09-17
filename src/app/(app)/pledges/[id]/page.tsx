@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getPledge, listContactLogsForPledge, redeemPledgeAction, forfeitPledgeAction } from "@/lib/actions";
+import { getPledge, listContactLogsForPledge, forfeitPledgeAction } from "@/lib/actions";
 import { computePledge, formatDate, formatDateTime, formatSAR, todayUtc } from "@/lib/pledge-calc";
 import StatusBadge from "@/components/StatusBadge";
 import ContactLogForm from "./ContactLogForm";
@@ -96,6 +96,14 @@ export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[
             أعاد العميل شراء القطعة بتاريخ {pledge.redeemed_at ? formatDate(pledge.redeemed_at) : "-"} مقابل{" "}
             {formatSAR(Number(pledge.settlement_amount))}
           </p>
+          {pledge.receipt_signature && (
+            <Link
+              href={`/pledges/${pledge.id}/receipt`}
+              className="mt-3 inline-block rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+            >
+              طباعة سند الاستلام
+            </Link>
+          )}
         </section>
       )}
 
@@ -117,14 +125,12 @@ export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[
       )}
 
       {pledge.status === "active" && !computed.isOverdue && (
-        <form action={redeemPledgeAction.bind(null, pledge.id)}>
-          <button
-            type="submit"
-            className="rounded-lg bg-emerald-700 px-6 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800"
-          >
-            تسجيل إعادة شراء العميل للقطعة (بمبلغ {formatSAR(computed.totalDue)})
-          </button>
-        </form>
+        <Link
+          href={`/pledges/${pledge.id}/redeem`}
+          className="inline-block rounded-lg bg-emerald-700 px-6 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800"
+        >
+          تسجيل إعادة شراء العميل للقطعة (بمبلغ {formatSAR(computed.totalDue)})
+        </Link>
       )}
 
       <div className="space-y-3">
