@@ -1,14 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { PledgeWithCustomer } from "@/lib/db";
 import type { PledgeComputed } from "@/lib/pledge-calc";
 import type { PledgeSortKey } from "@/lib/actions";
-import { formatDate, formatSAR } from "@/lib/pledge-calc";
+import { formatDate } from "@/lib/pledge-calc";
 import StatusBadge from "@/components/StatusBadge";
-import CardField from "@/components/CardField";
 
 type Row = { pledge: PledgeWithCustomer; computed: PledgeComputed };
 
@@ -23,19 +21,30 @@ type ColumnKey =
   | "totalDue"
   | "status";
 
+/** "always" columns are the fixed minimum that must fit on one line even on the narrowest phone. */
+type ColumnTier = "always" | "sm" | "md" | "lg" | "xl";
+
 type Column = {
   key: ColumnKey;
   label: string;
+  tier: ColumnTier;
   /** Maps to a server-sortable column; omit for columns that can't be sorted without pulling the whole table. */
   sortKey?: PledgeSortKey;
   defaultDir: "asc" | "desc";
   render: (row: Row) => React.ReactNode;
 };
 
+const compactSAR = new Intl.NumberFormat("ar-SA", {
+  style: "currency",
+  currency: "SAR",
+  maximumFractionDigits: 0,
+});
+
 const COLUMNS: Column[] = [
   {
     key: "contract_number",
     label: "رقم الفاتورة",
+    tier: "always",
     sortKey: "contract_number",
     defaultDir: "asc",
     render: (r) => (
@@ -47,17 +56,54 @@ const COLUMNS: Column[] = [
   {
     key: "customer_full_name",
     label: "العميل",
+    tier: "always",
     sortKey: "customer_full_name",
     defaultDir: "asc",
     render: (r) => (
-      <Link href={`/customers/${r.pledge.customer_id}`} className="hover:underline">
+      <Link
+        href={`/customers/${r.pledge.customer_id}`}
+        className="block max-w-[90px] truncate hover:underline sm:max-w-[160px] md:max-w-none"
+        title={r.pledge.customer_full_name}
+      >
         {r.pledge.customer_full_name}
       </Link>
     ),
   },
   {
+    key: "totalDue",
+    label: "المبلغ المطلوب",
+    tier: "always",
+    sortKey: "total_due",
+    defaultDir: "desc",
+    render: (r) => <span className="font-medium">{compactSAR.format(r.computed.totalDue)}</span>,
+  },
+  {
+    key: "daysRemaining",
+    label: "أيام متبقية",
+    tier: "always",
+    sortKey: "days_remaining",
+    defaultDir: "asc",
+    render: (r) => r.computed.daysRemaining,
+  },
+  {
+    key: "status",
+    label: "الحالة",
+    tier: "always",
+    defaultDir: "asc",
+    render: (r) => <StatusBadge status={r.computed.effectiveStatus} compact />,
+  },
+  {
+    key: "start_date",
+    label: "تاريخ الشراء",
+    tier: "sm",
+    sortKey: "start_date",
+    defaultDir: "desc",
+    render: (r) => <span className="text-slate-600">{formatDate(r.pledge.start_date)}</span>,
+  },
+  {
     key: "item_type",
     label: "القطعة",
+    tier: "md",
     sortKey: "item_type",
     defaultDir: "asc",
     render: (r) => <span className="text-slate-600">{r.pledge.item_type}</span>,
@@ -65,48 +111,32 @@ const COLUMNS: Column[] = [
   {
     key: "principal_amount",
     label: "مبلغ الشراء",
+    tier: "lg",
     sortKey: "principal_amount",
     defaultDir: "desc",
-    render: (r) => formatSAR(Number(r.pledge.principal_amount)),
-  },
-  {
-    key: "start_date",
-    label: "تاريخ الشراء",
-    sortKey: "start_date",
-    defaultDir: "desc",
-    render: (r) => <span className="text-slate-600">{formatDate(r.pledge.start_date)}</span>,
+    render: (r) => compactSAR.format(Number(r.pledge.principal_amount)),
   },
   {
     key: "daysElapsed",
     label: "أيام مستهلكة",
+    tier: "xl",
     defaultDir: "desc",
     render: (r) => r.computed.daysElapsed,
   },
-  {
-    key: "daysRemaining",
-    label: "أيام متبقية",
-    sortKey: "days_remaining",
-    defaultDir: "asc",
-    render: (r) => r.computed.daysRemaining,
-  },
-  {
-    key: "totalDue",
-    label: "مبلغ الاسترداد اليوم",
-    sortKey: "total_due",
-    defaultDir: "desc",
-    render: (r) => <span className="font-medium">{formatSAR(r.computed.totalDue)}</span>,
-  },
-  {
-    key: "status",
-    label: "الحالة",
-    defaultDir: "asc",
-    render: (r) => <StatusBadge status={r.computed.effectiveStatus} />,
-  },
 ];
 
+const OPTIONAL_COLUMNS = COLUMNS.filter((c) => c.tier !== "always");
 const DEFAULT_COLUMN_ORDER = COLUMNS.map((c) => c.key);
 const COLUMN_BY_KEY = new Map(COLUMNS.map((c) => [c.key, c]));
 const STORAGE_KEY = "pledgesTablePrefs";
+
+const TIER_HIDDEN_CLASS: Record<ColumnTier, string> = {
+  always: "",
+  sm: "hidden sm:table-cell",
+  md: "hidden md:table-cell",
+  lg: "hidden lg:table-cell",
+  xl: "hidden xl:table-cell",
+};
 
 export default function PledgesTable({
   rows,
@@ -127,17 +157,24 @@ export default function PledgesTable({
   hasSortParam: boolean;
   baseParams: { q: string; status: string };
 }) {
-  const router = useRouter();
   const [columnOrder, setColumnOrder] = useState<ColumnKey[]>(DEFAULT_COLUMN_ORDER);
+  const [forcedVisible, setForcedVisible] = useState<Set<ColumnKey>>(new Set());
   const [dragKey, setDragKey] = useState<ColumnKey | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const skipNextSave = useRef(true);
+  const redirectedRef = useRef(false);
 
-  // Load persisted column order + (if the URL didn't specify one) the last-used sort.
+  // Load persisted column order, forced-visible columns, and (if the URL didn't specify one) the last-used sort.
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as { columnOrder?: unknown; sortKey?: unknown; sortDir?: unknown };
+        const parsed = JSON.parse(raw) as {
+          columnOrder?: unknown;
+          forcedVisible?: unknown;
+          sortKey?: unknown;
+          sortDir?: unknown;
+        };
         if (
           Array.isArray(parsed.columnOrder) &&
           parsed.columnOrder.length === DEFAULT_COLUMN_ORDER.length &&
@@ -145,15 +182,20 @@ export default function PledgesTable({
         ) {
           setColumnOrder(parsed.columnOrder as ColumnKey[]);
         }
+        if (Array.isArray(parsed.forcedVisible)) {
+          const known = new Set(OPTIONAL_COLUMNS.map((c) => c.key));
+          setForcedVisible(new Set((parsed.forcedVisible as unknown[]).filter((k): k is ColumnKey => known.has(k as ColumnKey))));
+        }
         if (!hasSortParam && typeof parsed.sortKey === "string" && (parsed.sortDir === "asc" || parsed.sortDir === "desc")) {
-          const known = COLUMNS.some((c) => c.sortKey === parsed.sortKey);
-          if (known && (parsed.sortKey !== sortKey || parsed.sortDir !== sortDir)) {
+          const knownSort = COLUMNS.some((c) => c.sortKey === parsed.sortKey);
+          if (knownSort && (parsed.sortKey !== sortKey || parsed.sortDir !== sortDir) && !redirectedRef.current) {
+            redirectedRef.current = true;
             const qs = new URLSearchParams();
             if (baseParams.q) qs.set("q", baseParams.q);
             qs.set("status", baseParams.status);
             qs.set("sort", parsed.sortKey as string);
             qs.set("dir", parsed.sortDir);
-            router.replace(`/?${qs.toString()}`);
+            window.location.replace(`/?${qs.toString()}`);
           }
         }
       }
@@ -167,11 +209,14 @@ export default function PledgesTable({
   useEffect(() => {
     if (skipNextSave.current) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ columnOrder, sortKey, sortDir }));
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ columnOrder, forcedVisible: Array.from(forcedVisible), sortKey, sortDir })
+      );
     } catch {
       // ignore write failures (private mode, quota, etc.)
     }
-  }, [columnOrder, sortKey, sortDir]);
+  }, [columnOrder, forcedVisible, sortKey, sortDir]);
 
   function sortHref(col: Column): string | null {
     if (!col.sortKey) return null;
@@ -210,82 +255,67 @@ export default function PledgesTable({
     setDragKey(null);
   }
 
+  function toggleForced(key: ColumnKey) {
+    setForcedVisible((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
   const orderedColumns = useMemo(() => columnOrder.map((k) => COLUMN_BY_KEY.get(k)!), [columnOrder]);
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
-  function handleSortSelect(value: string) {
-    const [key, dir] = value.split(":");
-    const qs = new URLSearchParams();
-    if (baseParams.q) qs.set("q", baseParams.q);
-    qs.set("status", baseParams.status);
-    qs.set("sort", key);
-    qs.set("dir", dir);
-    router.push(`/?${qs.toString()}`);
-  }
-
   return (
     <div className="space-y-3">
-      {/* Sort control + card list on phones/tablets so nothing needs horizontal scrolling; real table from lg up. */}
-      <div className="lg:hidden">
-        <label className="mb-1 block text-xs font-medium text-slate-700">ترتيب حسب</label>
-        <select
-          value={`${sortKey}:${sortDir}`}
-          onChange={(e) => handleSortSelect(e.target.value)}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
-        >
-          {COLUMNS.filter((c) => c.sortKey).flatMap((c) => [
-            <option key={`${c.sortKey}-asc`} value={`${c.sortKey}:asc`}>
-              {c.label} (تصاعدي)
-            </option>,
-            <option key={`${c.sortKey}-desc`} value={`${c.sortKey}:desc`}>
-              {c.label} (تنازلي)
-            </option>,
-          ])}
-        </select>
-      </div>
-
-      <div className="space-y-3 lg:hidden">
-        {rows.map((row) => (
-          <Link
-            key={row.pledge.id}
-            href={`/pledges/${row.pledge.id}`}
-            className="block rounded-xl border border-slate-200 bg-white p-4 hover:bg-slate-50"
+      <div className="flex justify-end">
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setPickerOpen((o) => !o)}
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
           >
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-semibold text-teal-700">{row.pledge.contract_number}</span>
-              <StatusBadge status={row.computed.effectiveStatus} />
-            </div>
-            <p className="mt-1 text-sm text-slate-600">{row.pledge.customer_full_name}</p>
-            <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2">
-              <CardField label="القطعة" value={row.pledge.item_type} />
-              <CardField label="مبلغ الشراء" value={formatSAR(Number(row.pledge.principal_amount))} />
-              <CardField label="تاريخ الشراء" value={formatDate(row.pledge.start_date)} />
-              <CardField label="أيام متبقية" value={String(row.computed.daysRemaining)} />
-              <CardField
-                label="مبلغ الاسترداد اليوم"
-                value={formatSAR(row.computed.totalDue)}
-                className="col-span-2"
-              />
-            </div>
-          </Link>
-        ))}
-        {rows.length === 0 && (
-          <p className="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-400">
-            لا توجد مشتريات مطابقة
-          </p>
-        )}
+            + أعمدة
+          </button>
+          {pickerOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setPickerOpen(false)} />
+              <div className="absolute end-0 z-20 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+                <p className="px-2 py-1 text-xs font-semibold text-slate-500">
+                  أظهر أعمدة إضافية دائمًا (بغض النظر عن حجم الشاشة)
+                </p>
+                {OPTIONAL_COLUMNS.map((col) => (
+                  <label
+                    key={col.key}
+                    className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-slate-50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={forcedVisible.has(col.key)}
+                      onChange={() => toggleForced(col.key)}
+                      className="h-4 w-4 rounded border-slate-300"
+                    />
+                    {col.label}
+                  </label>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
-      <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white lg:block">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-slate-600">
             <tr>
               {orderedColumns.map((col) => {
                 const href = sortHref(col);
+                const hiddenClass = forcedVisible.has(col.key) ? "" : TIER_HIDDEN_CLASS[col.tier];
                 return (
                   <th
                     key={col.key}
-                    className={`px-3 py-2 text-right font-semibold select-none ${
+                    className={`px-2 py-2 text-right font-semibold select-none sm:px-3 ${hiddenClass} ${
                       dragKey && dragKey !== col.key ? "bg-teal-50" : ""
                     }`}
                     onDragOver={(e) => e.preventDefault()}
@@ -296,7 +326,7 @@ export default function PledgesTable({
                         draggable
                         onDragStart={() => setDragKey(col.key)}
                         onDragEnd={() => setDragKey(null)}
-                        className="cursor-move text-slate-400 hover:text-slate-600"
+                        className="hidden cursor-move text-slate-400 hover:text-slate-600 sm:inline"
                         title="اسحب لترتيب الأعمدة"
                       >
                         ⠿
@@ -318,11 +348,14 @@ export default function PledgesTable({
           <tbody>
             {rows.map((row) => (
               <tr key={row.pledge.id} className="border-t border-slate-100 hover:bg-slate-50">
-                {orderedColumns.map((col) => (
-                  <td key={col.key} className="px-3 py-2">
-                    {col.render(row)}
-                  </td>
-                ))}
+                {orderedColumns.map((col) => {
+                  const hiddenClass = forcedVisible.has(col.key) ? "" : TIER_HIDDEN_CLASS[col.tier];
+                  return (
+                    <td key={col.key} className={`whitespace-nowrap px-2 py-2 sm:px-3 ${hiddenClass}`}>
+                      {col.render(row)}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
             {rows.length === 0 && (

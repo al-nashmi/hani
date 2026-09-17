@@ -16,10 +16,27 @@ const LABELS: Record<PledgeComputed["effectiveStatus"], string> = {
   redeemed: "تم الاسترداد",
 };
 
-export default function StatusBadge({ status }: { status: PledgeComputed["effectiveStatus"] }) {
+// Shorter wording for tight spaces (e.g. the dense pledges table on small screens).
+const SHORT_LABELS: Record<PledgeComputed["effectiveStatus"], string> = {
+  active: "نشط",
+  due_soon: "قريب الانتهاء",
+  overdue: "متأخرة",
+  forfeited: "ملك المحل",
+  redeemed: "مسترد",
+};
+
+export default function StatusBadge({
+  status,
+  compact = false,
+}: {
+  status: PledgeComputed["effectiveStatus"];
+  compact?: boolean;
+}) {
   return (
-    <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${STYLES[status]}`}>
-      {LABELS[status]}
+    <span
+      className={`inline-block whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${STYLES[status]}`}
+    >
+      {compact ? SHORT_LABELS[status] : LABELS[status]}
     </span>
   );
 }
