@@ -268,12 +268,12 @@ export async function forfeitPledgeAction(pledgeId: number): Promise<void> {
 
 // ---------- Contact log ----------
 
-export async function listContactLogs(customerId: number): Promise<ContactLogWithPledge[]> {
+export async function listContactLogsForPledge(pledgeId: number): Promise<ContactLogWithPledge[]> {
   return (await sql`
     SELECT cl.*, p.contract_number AS pledge_contract_number
     FROM contact_logs cl
     LEFT JOIN pledges p ON p.id = cl.pledge_id
-    WHERE cl.customer_id = ${customerId}
+    WHERE cl.pledge_id = ${pledgeId}
     ORDER BY cl.contacted_at DESC
   `) as ContactLogWithPledge[];
 }
@@ -313,5 +313,6 @@ export async function createContactLogAction(formData: FormData): Promise<{ erro
     VALUES (${customer_id}, ${pledge_id}, ${contact_method}, ${notes || null}, ${attachment || null}, ${contactedAt.toISOString()})
   `;
 
+  if (pledge_id) redirect(`/pledges/${pledge_id}`);
   redirect(`/customers/${customer_id}`);
 }

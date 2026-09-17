@@ -2,7 +2,6 @@
 
 import { useActionState, useRef, useState } from "react";
 import { createContactLogAction } from "@/lib/actions";
-import type { Pledge } from "@/lib/db";
 
 const initialState: { error?: string } = {};
 
@@ -47,7 +46,7 @@ function resizeImageFile(file: File): Promise<string> {
   });
 }
 
-export default function ContactLogForm({ customerId, pledges }: { customerId: number; pledges: Pledge[] }) {
+export default function ContactLogForm({ customerId, pledgeId }: { customerId: number; pledgeId: number }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const contactedAtRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -87,6 +86,7 @@ export default function ContactLogForm({ customerId, pledges }: { customerId: nu
   return (
     <form action={formAction} className="space-y-3 rounded-xl border border-slate-200 bg-white p-5">
       <input type="hidden" name="customer_id" value={customerId} />
+      <input type="hidden" name="pledge_id" value={pledgeId} />
       <input ref={inputRef} type="hidden" name="attachment" />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -115,23 +115,6 @@ export default function ContactLogForm({ customerId, pledges }: { customerId: nu
           />
           <input ref={contactedAtRef} type="hidden" name="contacted_at" defaultValue={new Date().toISOString()} />
         </div>
-        {pledges.length > 0 && (
-          <div className="sm:col-span-2">
-            <label className="mb-1 block text-sm font-medium text-slate-700">بخصوص رهن (اختياري)</label>
-            <select
-              name="pledge_id"
-              defaultValue=""
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
-            >
-              <option value="">بدون ربط برهن معيّن</option>
-              {pledges.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.contract_number} - {p.item_type}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
         <div className="sm:col-span-2">
           <label className="mb-1 block text-sm font-medium text-slate-700">ملاحظات</label>
           <textarea

@@ -1,14 +1,24 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getPledge, redeemPledgeAction, forfeitPledgeAction } from "@/lib/actions";
-import { computePledge, formatDate, formatSAR, todayUtc } from "@/lib/pledge-calc";
+import { getPledge, listContactLogsForPledge, redeemPledgeAction, forfeitPledgeAction } from "@/lib/actions";
+import { computePledge, formatDate, formatDateTime, formatSAR, todayUtc } from "@/lib/pledge-calc";
 import StatusBadge from "@/components/StatusBadge";
+import ContactLogForm from "./ContactLogForm";
+
+const CONTACT_METHOD_LABELS: Record<string, string> = {
+  phone: "مكالمة هاتفية",
+  whatsapp: "واتساب",
+  sms: "رسالة نصية (SMS)",
+  in_person: "حضوريًا",
+  other: "أخرى",
+};
 
 export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[id]">) {
   const { id } = await params;
   const pledge = await getPledge(Number(id));
   if (!pledge) notFound();
 
+  const contactLogs = await listContactLogsForPledge(pledge.id);
   const computed = computePledge(pledge, todayUtc());
 
   return (
@@ -106,6 +116,37 @@ export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[
           </button>
         </form>
       )}
+
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold text-slate-800">سجل التواصل مع العميل</h2>
+        <ContactLogForm customerId={pledge.customer_id} pledgeId={pledge.id} />
+        <div className="space-y-3">
+          {contactLogs.map((log) => (
+            <div key={log.id} className="rounded-xl border border-slate-200 bg-white p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-sm font-medium text-slate-700">
+                  {CONTACT_METHOD_LABELS[log.contact_method] ?? log.contact_method}
+                </span>
+                <span className="text-xs text-slate-500">{formatDateTime(log.contacted_at)}</span>
+              </div>
+              {log.notes && <p className="mt-2 whitespace-pre-wrap text-sm text-slate-800">{log.notes}</p>}
+              {log.attachment && (
+                // eslint-disable-next-line @next/next/no-img-element -- stored base64 attachment, not an optimizable asset
+                <img
+                  src={log.attachment}
+                  alt="مرفق التواصل"
+                  className="mt-2 max-h-64 rounded-lg border border-slate-200"
+                />
+              )}
+            </div>
+          ))}
+          {contactLogs.length === 0 && (
+            <p className="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-400">
+              لا يوجد تواصل مسجل بخصوص هذا الرهن بعد
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
