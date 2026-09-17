@@ -2,8 +2,13 @@ import type { Pledge } from "./db";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-function toUtcDate(dateStr: string): Date {
-  return new Date(`${dateStr.slice(0, 10)}T00:00:00Z`);
+// The Neon driver parses Postgres DATE/TIMESTAMPTZ columns into native Date
+// objects (not strings), even though our types say `string` for simplicity.
+function toUtcDate(value: string | Date): Date {
+  if (value instanceof Date) {
+    return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()));
+  }
+  return new Date(`${value.slice(0, 10)}T00:00:00Z`);
 }
 
 export function todayUtc(): Date {
@@ -74,10 +79,16 @@ export function formatSAR(amount: number): string {
   }).format(amount);
 }
 
-export function formatDate(dateStr: string): string {
+/** Normalizes a DB date/timestamp value (string or Date) to "YYYY-MM-DD". */
+export function toISODateString(value: string | Date | null): string {
+  if (value === null) return "";
+  return toUtcDate(value).toISOString().slice(0, 10);
+}
+
+export function formatDate(value: string | Date): string {
   return new Intl.DateTimeFormat("ar-SA-u-ca-gregory", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(toUtcDate(dateStr));
+  }).format(toUtcDate(value));
 }

@@ -26,6 +26,8 @@ export const sql: NeonQueryFunction<false, false> = new Proxy(
   }
 );
 
+// Note: the Neon driver parses Postgres DATE/TIMESTAMPTZ columns into native
+// Date objects, not strings — these fields must be handled as `string | Date`.
 export type Customer = {
   id: number;
   full_name: string;
@@ -33,9 +35,9 @@ export type Customer = {
   nationality: string | null;
   phone: string | null;
   email: string | null;
-  id_issue_date: string | null;
+  id_issue_date: string | Date | null;
   id_issue_place: string | null;
-  created_at: string;
+  created_at: string | Date;
 };
 
 export type PledgeStatus = "active" | "redeemed" | "forfeited";
@@ -53,13 +55,13 @@ export type Pledge = {
   principal_amount: string;
   monthly_rate_percent: string;
   period_days: number;
-  start_date: string;
+  start_date: string | Date;
   status: PledgeStatus;
-  redeemed_at: string | null;
+  redeemed_at: string | Date | null;
   settlement_amount: string | null;
   notes: string | null;
-  created_at: string;
-  updated_at: string;
+  created_at: string | Date;
+  updated_at: string | Date;
 };
 
 export type PledgeWithCustomer = Pledge & {
