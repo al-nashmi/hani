@@ -2,9 +2,18 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { sql, type Customer, type Pledge, type PledgeWithCustomer } from "./db";
+import {
+  sql,
+  type ContactLogWithPledge,
+  type ContactMethod,
+  type Customer,
+  type Pledge,
+  type PledgeWithCustomer,
+} from "./db";
 import { checkPassword, createSessionToken, SESSION_COOKIE } from "./auth";
 import { computePledge, todayUtc } from "./pledge-calc";
+
+const CONTACT_METHODS: ContactMethod[] = ["phone", "whatsapp", "sms", "in_person", "other"];
 
 // ---------- Auth ----------
 
@@ -255,4 +264,54 @@ export async function forfeitPledgeAction(pledgeId: number): Promise<void> {
     UPDATE pledges SET status = 'forfeited', updated_at = now() WHERE id = ${pledgeId} AND status = 'active'
   `;
   redirect(`/pledges/${pledgeId}`);
+}
+
+// ---------- Contact log ----------
+
+export async function listContactLogs(customerId: number): Promise<ContactLogWithPledge[]> {
+  return (await sql`
+    SELECT cl.*, p.contract_number AS pledge_contract_number
+    FROM contact_logs cl
+    LEFT JOIN pledges p ON p.id = cl.pledge_id
+    WHERE cl.customer_id = ${customerId}
+    ORDER BY cl.contacted_at DESC
+  `) as ContactLogWithPledge[];
+}
+
+export async function createContactLogAction(formData: FormData): Promise<{ error?: string }> {
+  const customer_id = Number(formData.get("customer_id"));
+  const pledgeIdRaw = String(formData.get("pledge_id") ?? "").trim();
+  const pledge_id = pledgeIdRaw ? Number(pledgeIdRaw) : null;
+  const contact_method = String(formData.get("contact_method") ?? "").trim() as ContactMethod;
+  const notes = String(formData.get("notes") ?? "").trim();
+  const contactedAtRaw = String(formData.get("contacted_at") ?? "").trim();
+  const attachment = String(formData.get("attachment") ?? "").trim();
+
+  if (!customer_id) {
+    return { error: "عميل غير صحيح" };
+  }
+  if (!CONTACT_METHODS.includes(contact_method)) {
+    return { error: "طريقة التواصل غير صحيحة" };
+  }
+  if (!notes && !attachment) {
+    return { error: "أضف ملاحظة أو أرفق صورة على الأقل" };
+  }
+  if (attachment && !attachment.startsWith("data:image/")) {
+    return { error: "صيغة المرفق غير صحيحة" };
+  }
+  if (attachment.length > 2_000_000) {
+    return { error: "حجم الصورة كبير جدًا" };
+  }
+
+  const contactedAt = contactedAtRaw ? new Date(contactedAtRaw) : new Date();
+  if (Number.isNaN(contactedAt.getTime())) {
+    return { error: "تاريخ التواصل غير صحيح" };
+  }
+
+  await sql`
+    INSERT INTO contact_logs (customer_id, pledge_id, contact_method, notes, attachment, contacted_at)
+    VALUES (${customer_id}, ${pledge_id}, ${contact_method}, ${notes || null}, ${attachment || null}, ${contactedAt.toISOString()})
+  `;
+
+  redirect(`/customers/${customer_id}`);
 }

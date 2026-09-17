@@ -1,15 +1,27 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getCustomer, listPledgesForCustomer } from "@/lib/actions";
-import { computePledge, formatDate, formatSAR, todayUtc } from "@/lib/pledge-calc";
+import { getCustomer, listContactLogs, listPledgesForCustomer } from "@/lib/actions";
+import { computePledge, formatDate, formatDateTime, formatSAR, todayUtc } from "@/lib/pledge-calc";
 import StatusBadge from "@/components/StatusBadge";
+import ContactLogForm from "./ContactLogForm";
+
+const CONTACT_METHOD_LABELS: Record<string, string> = {
+  phone: "مكالمة هاتفية",
+  whatsapp: "واتساب",
+  sms: "رسالة نصية (SMS)",
+  in_person: "حضوريًا",
+  other: "أخرى",
+};
 
 export default async function CustomerDetailPage({ params }: PageProps<"/customers/[id]">) {
   const { id } = await params;
   const customer = await getCustomer(Number(id));
   if (!customer) notFound();
 
-  const pledges = await listPledgesForCustomer(customer.id);
+  const [pledges, contactLogs] = await Promise.all([
+    listPledgesForCustomer(customer.id),
+    listContactLogs(customer.id),
+  ]);
   const today = todayUtc();
 
   return (
@@ -76,6 +88,44 @@ export default async function CustomerDetailPage({ params }: PageProps<"/custome
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold text-slate-800">سجل التواصل مع العميل</h2>
+        <ContactLogForm customerId={customer.id} pledges={pledges} />
+        <div className="space-y-3">
+          {contactLogs.map((log) => (
+            <div key={log.id} className="rounded-xl border border-slate-200 bg-white p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 font-medium text-slate-700">
+                    {CONTACT_METHOD_LABELS[log.contact_method] ?? log.contact_method}
+                  </span>
+                  {log.pledge_contract_number && (
+                    <Link href={`/pledges/${log.pledge_id}`} className="text-teal-700 hover:underline">
+                      بخصوص رهن {log.pledge_contract_number}
+                    </Link>
+                  )}
+                </div>
+                <span className="text-xs text-slate-500">{formatDateTime(log.contacted_at)}</span>
+              </div>
+              {log.notes && <p className="mt-2 whitespace-pre-wrap text-sm text-slate-800">{log.notes}</p>}
+              {log.attachment && (
+                // eslint-disable-next-line @next/next/no-img-element -- stored base64 attachment, not an optimizable asset
+                <img
+                  src={log.attachment}
+                  alt="مرفق التواصل"
+                  className="mt-2 max-h-64 rounded-lg border border-slate-200"
+                />
+              )}
+            </div>
+          ))}
+          {contactLogs.length === 0 && (
+            <p className="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-400">
+              لا يوجد تواصل مسجل مع هذا العميل بعد
+            </p>
+          )}
         </div>
       </div>
     </div>

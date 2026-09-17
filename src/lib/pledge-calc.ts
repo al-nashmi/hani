@@ -92,3 +92,12 @@ export function formatDate(value: string | Date): string {
     day: "2-digit",
   }).format(toUtcDate(value));
 }
+
+/** For real timestamps (contact log, created_at) where the time of day matters. */
+export function formatDateTime(value: string | Date): string {
+  const d = value instanceof Date ? value : new Date(value);
+  return new Intl.DateTimeFormat("ar-SA-u-ca-gregory", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(d);
+}

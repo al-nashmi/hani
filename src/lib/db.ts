@@ -70,3 +70,20 @@ export type PledgeWithCustomer = Pledge & {
   customer_national_id: string;
   customer_phone: string | null;
 };
+
+export type ContactMethod = "phone" | "whatsapp" | "sms" | "in_person" | "other";
+
+export type ContactLog = {
+  id: number;
+  customer_id: number;
+  pledge_id: number | null;
+  contact_method: ContactMethod;
+  notes: string | null;
+  attachment: string | null;
+  contacted_at: string | Date;
+  created_at: string | Date;
+};
+
+export type ContactLogWithPledge = ContactLog & {
+  pledge_contract_number: string | null;
+};
