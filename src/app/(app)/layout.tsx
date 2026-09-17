@@ -31,6 +31,9 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
             >
               تصدير البيانات
             </a>
+            <Link href="/profile" className="rounded-lg px-3 py-2 font-medium text-slate-700 hover:bg-slate-100">
+              بيانات المحل
+            </Link>
             <form action={logoutAction}>
               <button
                 type="submit"

@@ -1,11 +1,11 @@
 import { notFound, redirect } from "next/navigation";
-import { getPledge } from "@/lib/actions";
+import { getPledge, getShopProfile } from "@/lib/actions";
 import { computePledge, formatDate, formatSAR, todayUtc } from "@/lib/pledge-calc";
 import RedeemForm from "./RedeemForm";
 
 export default async function RedeemPledgePage({ params }: PageProps<"/pledges/[id]/redeem">) {
   const { id } = await params;
-  const pledge = await getPledge(Number(id));
+  const [pledge, shopProfile] = await Promise.all([getPledge(Number(id)), getShopProfile()]);
   if (!pledge) notFound();
 
   const computed = computePledge(pledge, todayUtc());
@@ -30,6 +30,7 @@ export default async function RedeemPledgePage({ params }: PageProps<"/pledges/[
         itemDescription={pledge.item_description}
         dateLabel={formatDate(todayUtc())}
         amountLabel={formatSAR(computed.totalDue)}
+        shopName={shopProfile.name}
       />
     </div>
   );

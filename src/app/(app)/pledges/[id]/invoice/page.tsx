@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
-import { getPledge } from "@/lib/actions";
+import { getPledge, getShopProfile } from "@/lib/actions";
 import { computePledge, formatDate, formatSAR, todayUtc } from "@/lib/pledge-calc";
 import PrintButton from "../PrintButton";
 
 export default async function PledgeInvoicePage({ params }: PageProps<"/pledges/[id]/invoice">) {
   const { id } = await params;
-  const pledge = await getPledge(Number(id));
+  const [pledge, shopProfile] = await Promise.all([getPledge(Number(id)), getShopProfile()]);
   if (!pledge) notFound();
 
   const computed = computePledge(pledge, todayUtc());
@@ -23,8 +23,10 @@ export default async function PledgeInvoicePage({ params }: PageProps<"/pledges/
       <div className="rounded-xl border border-slate-200 bg-white p-8 print:border-0 print:p-0">
         <div className="mb-6 flex items-center justify-between border-b-2 border-teal-700 pb-4">
           <div>
-            <h1 className="text-xl font-bold text-teal-800">مجوهرات هاني النمر</h1>
-            <p className="text-xs text-slate-500">HANI ALNEMER JEWELRY</p>
+            <h1 className="text-xl font-bold text-teal-800">{shopProfile.name}</h1>
+            {shopProfile.commercial_registration && (
+              <p className="text-xs text-slate-500">سجل تجاري: {shopProfile.commercial_registration}</p>
+            )}
           </div>
           <div className="text-left">
             <p className="text-lg font-bold text-slate-800">فاتورة شراء</p>
@@ -82,11 +84,17 @@ export default async function PledgeInvoicePage({ params }: PageProps<"/pledges/
           <p className="rounded-lg bg-slate-50 p-3 text-xs leading-relaxed text-slate-700">
             أقر أنا الموقّع أدناه <b>{pledge.customer_full_name}</b>، صاحب الهوية رقم{" "}
             <b>{pledge.customer_national_id}</b>، بكامل رضائي واختياري وحالتي المعتبرة شرعًا ونظامًا، بأنني بعت
-            بتاريخ <b>{formatDate(pledge.start_date)}</b> إلى معرض هاني النمر للساعات والمجوهرات القطعة الموصوفة
-            أعلاه (<b>{pledge.item_description}</b>) بثمن قدره{" "}
+            بتاريخ <b>{formatDate(pledge.start_date)}</b> إلى <b>{shopProfile.name}</b>
+            {shopProfile.commercial_registration ? (
+              <>
+                {" "}
+                (سجل تجاري رقم <b>{shopProfile.commercial_registration}</b>)
+              </>
+            ) : null}{" "}
+            القطعة الموصوفة أعلاه (<b>{pledge.item_description}</b>) بثمن قدره{" "}
             <b>{formatSAR(Number(pledge.principal_amount))}</b>، وقد استلمت الثمن المذكور كاملاً، وذلك بيعًا باتًا
-            ونهائيًا لا رجعة فيه، انتقلت به ملكية القطعة المذكورة إلى معرض هاني النمر للساعات والمجوهرات بشكل كامل
-            ونهائي من تاريخه، ولا خيار لي أو لأي طرف في هذا البيع.
+            ونهائيًا لا رجعة فيه، انتقلت به ملكية القطعة المذكورة إلى <b>{shopProfile.name}</b> بشكل كامل ونهائي من
+            تاريخه، ولا خيار لي أو لأي طرف في هذا البيع.
           </p>
         </div>
 
@@ -112,7 +120,7 @@ export default async function PledgeInvoicePage({ params }: PageProps<"/pledges/
             )}
           </div>
           <div>
-            <p className="mb-1 text-slate-500">توقيع المشتري (معرض هاني النمر)</p>
+            <p className="mb-1 text-slate-500">توقيع المشتري ({shopProfile.name})</p>
             <div className="h-20 border-b border-slate-400" />
           </div>
         </div>

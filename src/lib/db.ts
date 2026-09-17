@@ -63,6 +63,9 @@ export type Pledge = {
   customer_signature: string | null;
   receipt_signature: string | null;
   id_photo: string | null;
+  receiver_full_name: string | null;
+  receiver_national_id: string | null;
+  receiver_id_photo: string | null;
   created_at: string | Date;
   updated_at: string | Date;
 };
@@ -88,4 +91,13 @@ export type ContactLog = {
 
 export type ContactLogWithPledge = ContactLog & {
   pledge_contract_number: string | null;
+};
+
+export type ShopProfile = {
+  id: number;
+  name: string;
+  commercial_registration: string | null;
+  phone: string | null;
+  address: string | null;
+  updated_at: string | Date;
 };

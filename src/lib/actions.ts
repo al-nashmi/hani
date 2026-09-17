@@ -9,6 +9,7 @@ import {
   type Customer,
   type Pledge,
   type PledgeWithCustomer,
+  type ShopProfile,
 } from "./db";
 import { checkPassword, createSessionToken, SESSION_COOKIE } from "./auth";
 import { computePledge, todayUtc } from "./pledge-calc";
@@ -257,15 +258,30 @@ export async function createPledgeFormAction(formData: FormData): Promise<{ erro
 export async function redeemPledgeFormAction(formData: FormData): Promise<{ error?: string }> {
   const pledgeId = Number(formData.get("pledge_id"));
   const receipt_signature = String(formData.get("receipt_signature") ?? "").trim();
+  const isOtherReceiver = String(formData.get("is_other_receiver") ?? "") === "true";
+  const receiver_full_name = String(formData.get("receiver_full_name") ?? "").trim();
+  const receiver_national_id = String(formData.get("receiver_national_id") ?? "").trim();
+  const receiver_id_photo = String(formData.get("receiver_id_photo") ?? "").trim();
 
   if (!pledgeId) {
     return { error: "بيانات غير صحيحة" };
   }
   if (!receipt_signature.startsWith("data:image/")) {
-    return { error: "توقيع العميل على سند الاستلام مطلوب" };
+    return { error: "توقيع مستلم القطعة على سند الاستلام مطلوب" };
   }
   if (receipt_signature.length > 300_000) {
     return { error: "التوقيع كبير جدًا، حاول توقيع أبسط" };
+  }
+  if (isOtherReceiver) {
+    if (!receiver_full_name || !receiver_national_id) {
+      return { error: "اسم ورقم هوية الشخص المستلم مطلوبان" };
+    }
+    if (receiver_id_photo && !receiver_id_photo.startsWith("data:image/")) {
+      return { error: "صيغة صورة هوية المستلم غير صحيحة" };
+    }
+    if (receiver_id_photo.length > 2_000_000) {
+      return { error: "حجم صورة هوية المستلم كبير جدًا" };
+    }
   }
 
   const pledge = await getPledge(pledgeId);
@@ -279,7 +295,11 @@ export async function redeemPledgeFormAction(formData: FormData): Promise<{ erro
   await sql`
     UPDATE pledges
     SET status = 'redeemed', redeemed_at = CURRENT_DATE, settlement_amount = ${settlement},
-        receipt_signature = ${receipt_signature}, updated_at = now()
+        receipt_signature = ${receipt_signature},
+        receiver_full_name = ${isOtherReceiver ? receiver_full_name : null},
+        receiver_national_id = ${isOtherReceiver ? receiver_national_id : null},
+        receiver_id_photo = ${isOtherReceiver ? receiver_id_photo || null : null},
+        updated_at = now()
     WHERE id = ${pledgeId}
   `;
 
@@ -342,4 +362,44 @@ export async function createContactLogAction(formData: FormData): Promise<{ erro
 
   if (pledge_id) redirect(`/pledges/${pledge_id}`);
   redirect(`/customers/${customer_id}`);
+}
+
+// ---------- Shop profile ----------
+
+export async function getShopProfile(): Promise<ShopProfile> {
+  const rows = (await sql`SELECT * FROM shop_profile WHERE id = 1`) as ShopProfile[];
+  return (
+    rows[0] ?? {
+      id: 1,
+      name: "مجوهرات هاني النمر",
+      commercial_registration: null,
+      phone: null,
+      address: null,
+      updated_at: new Date().toISOString(),
+    }
+  );
+}
+
+export async function updateShopProfileFormAction(formData: FormData): Promise<{ error?: string }> {
+  const name = String(formData.get("name") ?? "").trim();
+  const commercial_registration = String(formData.get("commercial_registration") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim();
+  const address = String(formData.get("address") ?? "").trim();
+
+  if (!name) {
+    return { error: "اسم المحل مطلوب" };
+  }
+
+  await sql`
+    INSERT INTO shop_profile (id, name, commercial_registration, phone, address, updated_at)
+    VALUES (1, ${name}, ${commercial_registration || null}, ${phone || null}, ${address || null}, now())
+    ON CONFLICT (id) DO UPDATE SET
+      name = EXCLUDED.name,
+      commercial_registration = EXCLUDED.commercial_registration,
+      phone = EXCLUDED.phone,
+      address = EXCLUDED.address,
+      updated_at = now()
+  `;
+
+  redirect("/profile");
 }

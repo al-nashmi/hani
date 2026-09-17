@@ -30,10 +30,14 @@ export default function PledgeForm({
   customers,
   preselectedCustomerId,
   nextContractNumber,
+  shopName,
+  shopCommercialRegistration,
 }: {
   customers: Customer[];
   preselectedCustomerId?: number;
   nextContractNumber: string;
+  shopName: string;
+  shopCommercialRegistration: string | null;
 }) {
   const preselected = preselectedCustomerId
     ? customers.find((c) => c.id === preselectedCustomerId)
@@ -273,10 +277,17 @@ export default function PledgeForm({
         <p className="whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm leading-relaxed text-slate-700">
           أقر أنا الموقّع أدناه <b>{declarationName || "......................"}</b>، صاحب الهوية رقم{" "}
           <b>{declarationNationalId || "......................"}</b>، بكامل رضائي واختياري وحالتي المعتبرة شرعًا
-          ونظامًا، بأنني بعت بتاريخ <b>{startDate}</b> إلى معرض هاني النمر للساعات والمجوهرات القطعة الموصوفة أعلاه (
-          <b>{itemDescription || "......................"}</b>) بثمن قدره <b>{declarationPrice}</b>، وقد استلمت
-          الثمن المذكور كاملاً، وذلك بيعًا باتًا ونهائيًا لا رجعة فيه، انتقلت به ملكية القطعة المذكورة إلى معرض هاني
-          النمر للساعات والمجوهرات بشكل كامل ونهائي من تاريخه، ولا خيار لي أو لأي طرف في هذا البيع.
+          ونظامًا، بأنني بعت بتاريخ <b>{startDate}</b> إلى <b>{shopName}</b>
+          {shopCommercialRegistration ? (
+            <>
+              {" "}
+              (سجل تجاري رقم <b>{shopCommercialRegistration}</b>)
+            </>
+          ) : null}{" "}
+          القطعة الموصوفة أعلاه (<b>{itemDescription || "......................"}</b>) بثمن قدره{" "}
+          <b>{declarationPrice}</b>، وقد استلمت الثمن المذكور كاملاً، وذلك بيعًا باتًا ونهائيًا لا رجعة فيه، انتقلت
+          به ملكية القطعة المذكورة إلى <b>{shopName}</b> بشكل كامل ونهائي من تاريخه، ولا خيار لي أو لأي طرف في هذا
+          البيع.
         </p>
       </section>
 
