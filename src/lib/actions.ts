@@ -129,6 +129,114 @@ export async function listPledges(filter?: {
   return rows;
 }
 
+export type PledgeStatusFilter = "all" | "active" | "due_soon" | "overdue" | "forfeited" | "redeemed";
+export type PledgeSortKey =
+  | "contract_number"
+  | "customer_full_name"
+  | "item_type"
+  | "principal_amount"
+  | "start_date"
+  | "days_remaining"
+  | "total_due";
+
+// Raw SQL fragments, never built from user input — sortKey/status are validated against
+// these fixed maps before use, so sql.unsafe() here can't be reached with attacker data.
+const PLEDGE_SORT_EXPR: Record<PledgeSortKey, string> = {
+  contract_number: "p.contract_number",
+  customer_full_name: "c.full_name",
+  item_type: "p.item_type",
+  principal_amount: "p.principal_amount",
+  start_date: "p.start_date",
+  // Mirrors computePledge()'s daysRemaining in pledge-calc.ts — keep in sync if that changes.
+  days_remaining: "GREATEST(p.period_days - GREATEST((CURRENT_DATE - p.start_date::date), 0), 0)",
+  // Mirrors computePledge()'s totalDue (principal + fee accrued) in pledge-calc.ts.
+  total_due:
+    "p.principal_amount + p.principal_amount * (p.monthly_rate_percent / 100) * " +
+    "(LEAST(GREATEST((CURRENT_DATE - p.start_date::date), 0), p.period_days) / 30.0)",
+};
+
+// Mirrors computePledge()'s effectiveStatus priority (redeemed/forfeited are stored;
+// overdue/due_soon/active are date-derived from an 'active' row) in pledge-calc.ts.
+const PLEDGE_STATUS_WHERE: Record<Exclude<PledgeStatusFilter, "all">, string> = {
+  redeemed: "p.status = 'redeemed'",
+  forfeited: "p.status = 'forfeited'",
+  overdue: "p.status = 'active' AND (p.start_date::date + (p.period_days || ' days')::interval) <= CURRENT_DATE",
+  due_soon:
+    "p.status = 'active'" +
+    " AND (p.start_date::date + (p.period_days || ' days')::interval) > CURRENT_DATE" +
+    " AND (p.start_date::date + (p.period_days || ' days')::interval) <= (CURRENT_DATE + INTERVAL '7 days')",
+  active:
+    "p.status = 'active'" +
+    " AND (p.start_date::date + (p.period_days || ' days')::interval) > (CURRENT_DATE + INTERVAL '7 days')",
+};
+
+export type PledgesPageResult = {
+  rows: PledgeWithCustomer[];
+  total: number;
+  activeCount: number;
+  principalOutstanding: number;
+  dueOutstanding: number;
+};
+
+/** Server-side filtered/sorted/paginated pledge listing for the dashboard — never pulls the whole table into the page. */
+export async function listPledgesPage(opts: {
+  search?: string;
+  status?: PledgeStatusFilter;
+  sortKey?: PledgeSortKey;
+  sortDir?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+}): Promise<PledgesPageResult> {
+  const search = opts.search?.trim();
+  const q = search ? `%${search}%` : null;
+  const statusClause = opts.status && opts.status !== "all" ? PLEDGE_STATUS_WHERE[opts.status] : null;
+  const orderExpr = PLEDGE_SORT_EXPR[opts.sortKey ?? "start_date"] ?? PLEDGE_SORT_EXPR.start_date;
+  const dir = opts.sortDir === "asc" ? "ASC" : "DESC";
+  const pageSize = opts.pageSize && opts.pageSize > 0 ? Math.min(opts.pageSize, 200) : 50;
+  const page = Math.max(1, opts.page ?? 1);
+  const offset = (page - 1) * pageSize;
+
+  const [rowsRaw, countRaw, totalsRaw] = await Promise.all([
+    sql`
+      SELECT p.*, c.full_name AS customer_full_name, c.national_id AS customer_national_id, c.phone AS customer_phone
+      FROM pledges p
+      JOIN customers c ON c.id = p.customer_id
+      WHERE (${q}::text IS NULL OR c.full_name ILIKE ${q} OR c.national_id ILIKE ${q} OR p.contract_number ILIKE ${q})
+        ${sql.unsafe(statusClause ? `AND ${statusClause}` : "")}
+      ORDER BY ${sql.unsafe(orderExpr)} ${sql.unsafe(dir)}
+      LIMIT ${pageSize} OFFSET ${offset}
+    `,
+    sql`
+      SELECT COUNT(*) AS total
+      FROM pledges p
+      JOIN customers c ON c.id = p.customer_id
+      WHERE (${q}::text IS NULL OR c.full_name ILIKE ${q} OR c.national_id ILIKE ${q} OR p.contract_number ILIKE ${q})
+        ${sql.unsafe(statusClause ? `AND ${statusClause}` : "")}
+    `,
+    sql`
+      SELECT
+        COUNT(*) FILTER (WHERE p.status = 'active') AS active_count,
+        COALESCE(SUM(p.principal_amount) FILTER (WHERE p.status = 'active'), 0) AS principal_outstanding,
+        COALESCE(SUM(${sql.unsafe(PLEDGE_SORT_EXPR.total_due)}) FILTER (WHERE p.status = 'active'), 0) AS due_outstanding
+      FROM pledges p
+      JOIN customers c ON c.id = p.customer_id
+      WHERE (${q}::text IS NULL OR c.full_name ILIKE ${q} OR c.national_id ILIKE ${q} OR p.contract_number ILIKE ${q})
+    `,
+  ]);
+
+  const rows = rowsRaw as PledgeWithCustomer[];
+  const countRows = countRaw as { total: string }[];
+  const totalsRows = totalsRaw as { active_count: string; principal_outstanding: string; due_outstanding: string }[];
+
+  return {
+    rows,
+    total: Number(countRows[0]?.total ?? 0),
+    activeCount: Number(totalsRows[0]?.active_count ?? 0),
+    principalOutstanding: Number(totalsRows[0]?.principal_outstanding ?? 0),
+    dueOutstanding: Number(totalsRows[0]?.due_outstanding ?? 0),
+  };
+}
+
 // ---------- Reminders ----------
 
 export type ReminderItem = {
@@ -213,12 +321,10 @@ const AUTO_CONTRACT_PREFIX = "H";
 /** Next auto-generated invoice number, continuing after the highest existing "H<digits>" number (old free-text invoice numbers are left untouched). */
 export async function getNextContractNumber(): Promise<string> {
   const rows = (await sql`
-    SELECT contract_number FROM pledges WHERE contract_number ~ '^H[0-9]+$'
-  `) as { contract_number: string }[];
-  const maxN = rows.reduce((max, r) => {
-    const n = Number(r.contract_number.slice(1));
-    return n > max ? n : max;
-  }, 0);
+    SELECT MAX((substring(contract_number FROM 2))::int) AS max_n
+    FROM pledges WHERE contract_number ~ '^H[0-9]+$'
+  `) as { max_n: number | null }[];
+  const maxN = rows[0]?.max_n ?? 0;
   return `${AUTO_CONTRACT_PREFIX}${maxN + 1}`;
 }
 
