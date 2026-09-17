@@ -25,7 +25,7 @@ export default async function CustomerDetailPage({ params }: PageProps<"/custome
       </div>
 
       <div className="grid grid-cols-2 gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:grid-cols-4">
-        <Info label="رقم الهوية" value={customer.national_id} />
+        <Info label="رقم الهوية" value={customer.national_id || "-"} />
         <Info label="الجنسية" value={customer.nationality || "-"} />
         <Info label="الجوال" value={customer.phone || "-"} />
         <Info label="البريد الإلكتروني" value={customer.email || "-"} />

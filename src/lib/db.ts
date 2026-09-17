@@ -31,7 +31,7 @@ export const sql: NeonQueryFunction<false, false> = new Proxy(
 export type Customer = {
   id: number;
   full_name: string;
-  national_id: string;
+  national_id: string | null;
   nationality: string | null;
   phone: string | null;
   email: string | null;
@@ -72,7 +72,7 @@ export type Pledge = {
 
 export type PledgeWithCustomer = Pledge & {
   customer_full_name: string;
-  customer_national_id: string;
+  customer_national_id: string | null;
   customer_phone: string | null;
 };
 

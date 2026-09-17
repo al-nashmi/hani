@@ -20,7 +20,7 @@ function matchesCustomer(c: Customer, query: string): boolean {
   if (!q) return false;
   return (
     c.full_name.toLowerCase().includes(q) ||
-    c.national_id.toLowerCase().includes(q) ||
+    (c.national_id ?? "").toLowerCase().includes(q) ||
     (c.phone ?? "").toLowerCase().includes(q) ||
     (c.email ?? "").toLowerCase().includes(q)
   );

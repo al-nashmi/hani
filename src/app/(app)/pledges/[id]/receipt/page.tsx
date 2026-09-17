@@ -42,13 +42,13 @@ export default async function PledgeReceiptPage({ params }: PageProps<"/pledges/
 
         <div className="mb-6 grid grid-cols-2 gap-4 text-sm">
           <Field label="اسم العميل" value={pledge.customer_full_name} />
-          <Field label="رقم الهوية" value={pledge.customer_national_id} />
+          <Field label="رقم الهوية" value={pledge.customer_national_id || "-"} />
         </div>
 
         {isOtherReceiver && (
           <div className="mb-6 grid grid-cols-2 gap-4 rounded-lg bg-amber-50 p-3 text-sm">
             <Field label="اسم مستلم القطعة" value={declarantName} />
-            <Field label="رقم هوية المستلم" value={declarantNationalId} />
+            <Field label="رقم هوية المستلم" value={declarantNationalId || "-"} />
           </div>
         )}
 
@@ -64,12 +64,12 @@ export default async function PledgeReceiptPage({ params }: PageProps<"/pledges/
         <div className="mb-8">
           <h2 className="mb-2 text-sm font-bold text-slate-800">صيغة سند الاستلام</h2>
           <p className="rounded-lg bg-slate-50 p-3 text-xs leading-relaxed text-slate-700">
-            أقر أنا الموقّع أدناه <b>{declarantName}</b>، صاحب الهوية رقم <b>{declarantNationalId}</b>
+            أقر أنا الموقّع أدناه <b>{declarantName}</b>، صاحب الهوية رقم <b>{declarantNationalId || "غير مسجل"}</b>
             {isOtherReceiver ? (
               <>
                 {" "}
                 بصفتي مستلمًا للقطعة نيابة عن العميل <b>{pledge.customer_full_name}</b> (صاحب الهوية رقم{" "}
-                <b>{pledge.customer_national_id}</b>)
+                <b>{pledge.customer_national_id || "غير مسجل"}</b>)
               </>
             ) : null}
             ، بأنني استلمت بتاريخ <b>{formatDate(pledge.redeemed_at)}</b> من <b>{shopProfile.name}</b> القطعة

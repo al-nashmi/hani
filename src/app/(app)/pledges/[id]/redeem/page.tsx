@@ -25,7 +25,7 @@ export default async function RedeemPledgePage({ params }: PageProps<"/pledges/[
       <RedeemForm
         pledgeId={pledge.id}
         customerName={pledge.customer_full_name}
-        customerNationalId={pledge.customer_national_id}
+        customerNationalId={pledge.customer_national_id || "غير مسجل"}
         contractNumber={pledge.contract_number}
         itemDescription={pledge.item_description}
         dateLabel={formatDate(todayUtc())}

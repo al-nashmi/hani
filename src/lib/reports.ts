@@ -14,7 +14,7 @@ export type PledgeReport = {
 export type CustomerReportRow = {
   customerId: number;
   customerFullName: string;
-  customerNationalId: string;
+  customerNationalId: string | null;
   pledgeCount: number;
   invested: number;
   profit: number;

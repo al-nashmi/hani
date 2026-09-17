@@ -38,7 +38,7 @@ export default async function PledgeInvoicePage({ params }: PageProps<"/pledges/
 
         <div className="mb-6 grid grid-cols-2 gap-4 text-sm">
           <Field label="اسم البائع (العميل)" value={pledge.customer_full_name} />
-          <Field label="رقم الهوية" value={pledge.customer_national_id} />
+          <Field label="رقم الهوية" value={pledge.customer_national_id || "-"} />
           {pledge.customer_phone && <Field label="رقم الجوال" value={pledge.customer_phone} />}
         </div>
 
@@ -84,7 +84,7 @@ export default async function PledgeInvoicePage({ params }: PageProps<"/pledges/
           <h2 className="mb-2 text-sm font-bold text-slate-800">صيغة المبايعة</h2>
           <p className="rounded-lg bg-slate-50 p-3 text-xs leading-relaxed text-slate-700">
             أقر أنا الموقّع أدناه <b>{pledge.customer_full_name}</b>، صاحب الهوية رقم{" "}
-            <b>{pledge.customer_national_id}</b>، بكامل رضائي واختياري وحالتي المعتبرة شرعًا ونظامًا، بأنني بعت
+            <b>{pledge.customer_national_id || "غير مسجل"}</b>، بكامل رضائي واختياري وحالتي المعتبرة شرعًا ونظامًا، بأنني بعت
             بتاريخ <b>{formatDate(pledge.start_date)}</b> إلى <b>{shopProfile.name}</b>
             {shopProfile.commercial_registration ? (
               <>
