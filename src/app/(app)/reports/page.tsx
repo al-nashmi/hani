@@ -1,14 +1,24 @@
 import Link from "next/link";
 import { listPledges } from "@/lib/actions";
-import { computeCustomerReports, computeTotals } from "@/lib/reports";
+import { computeCustomerReports, computeTotals, isWithinRange, resolveReportRange } from "@/lib/reports";
 import { computePledge, formatSAR, todayUtc } from "@/lib/pledge-calc";
 import { StatusDistributionChart, TopCustomersChart, type StatusDatum } from "./ReportsCharts";
+import ReportPeriodFilter from "./ReportPeriodFilter";
 
 export const dynamic = "force-dynamic";
 
-export default async function ReportsPage() {
-  const pledges = await listPledges({});
+export default async function ReportsPage({ searchParams }: PageProps<"/reports">) {
+  const params = await searchParams;
   const today = todayUtc();
+  const getParam = (k: string) => (typeof params[k] === "string" ? (params[k] as string) : "");
+
+  const range = resolveReportRange(
+    { period: getParam("period"), month: getParam("month"), year: getParam("year"), from: getParam("from"), to: getParam("to") },
+    today
+  );
+
+  const allPledges = await listPledges({});
+  const pledges = allPledges.filter((p) => isWithinRange(p.start_date, range));
 
   const customerRows = computeCustomerReports(pledges, today);
   const totals = computeTotals(customerRows);
@@ -32,7 +42,18 @@ export default async function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-slate-800">التقارير</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-xl font-bold text-slate-800">التقارير</h1>
+        <span className="text-sm text-slate-500">الفترة المعروضة: {range.label}</span>
+      </div>
+
+      <ReportPeriodFilter
+        initialPeriod={range.period}
+        initialMonth={getParam("month") || `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, "0")}`}
+        initialYear={getParam("year") || String(today.getUTCFullYear())}
+        initialFrom={getParam("from")}
+        initialTo={getParam("to")}
+      />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-slate-200 bg-white p-4">

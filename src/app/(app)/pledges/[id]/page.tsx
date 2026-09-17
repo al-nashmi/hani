@@ -4,6 +4,7 @@ import { getPledge, listContactLogsForPledge, redeemPledgeAction, forfeitPledgeA
 import { computePledge, formatDate, formatDateTime, formatSAR, todayUtc } from "@/lib/pledge-calc";
 import StatusBadge from "@/components/StatusBadge";
 import ContactLogForm from "./ContactLogForm";
+import ContactLogTable from "./ContactLogTable";
 
 const CONTACT_METHOD_LABELS: Record<string, string> = {
   phone: "مكالمة هاتفية",
@@ -30,7 +31,15 @@ export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[
             {pledge.customer_full_name} - {pledge.customer_national_id}
           </Link>
         </div>
-        <StatusBadge status={computed.effectiveStatus} />
+        <div className="flex items-center gap-2">
+          <StatusBadge status={computed.effectiveStatus} />
+          <Link
+            href={`/pledges/${pledge.id}/invoice`}
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+          >
+            طباعة / تحميل PDF
+          </Link>
+        </div>
       </div>
 
       <section className="rounded-xl border border-slate-200 bg-white p-5">
@@ -120,32 +129,15 @@ export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[
       <div className="space-y-3">
         <h2 className="text-lg font-semibold text-slate-800">سجل التواصل مع العميل</h2>
         <ContactLogForm customerId={pledge.customer_id} pledgeId={pledge.id} />
-        <div className="space-y-3">
-          {contactLogs.map((log) => (
-            <div key={log.id} className="rounded-xl border border-slate-200 bg-white p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-sm font-medium text-slate-700">
-                  {CONTACT_METHOD_LABELS[log.contact_method] ?? log.contact_method}
-                </span>
-                <span className="text-xs text-slate-500">{formatDateTime(log.contacted_at)}</span>
-              </div>
-              {log.notes && <p className="mt-2 whitespace-pre-wrap text-sm text-slate-800">{log.notes}</p>}
-              {log.attachment && (
-                // eslint-disable-next-line @next/next/no-img-element -- stored base64 attachment, not an optimizable asset
-                <img
-                  src={log.attachment}
-                  alt="مرفق التواصل"
-                  className="mt-2 max-h-64 rounded-lg border border-slate-200"
-                />
-              )}
-            </div>
-          ))}
-          {contactLogs.length === 0 && (
-            <p className="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-400">
-              لا يوجد تواصل مسجل بخصوص هذا الرهن بعد
-            </p>
-          )}
-        </div>
+        <ContactLogTable
+          logs={contactLogs.map((log) => ({
+            id: log.id,
+            methodLabel: CONTACT_METHOD_LABELS[log.contact_method] ?? log.contact_method,
+            contactedAtLabel: formatDateTime(log.contacted_at),
+            notes: log.notes,
+            attachment: log.attachment,
+          }))}
+        />
       </div>
     </div>
   );
