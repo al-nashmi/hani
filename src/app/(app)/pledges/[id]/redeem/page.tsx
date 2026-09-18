@@ -29,7 +29,7 @@ export default async function RedeemPledgePage({ params }: PageProps<"/pledges/[
         contractNumber={pledge.contract_number}
         itemDescription={pledge.item_description}
         dateLabel={formatDate(todayUtc())}
-        amountLabel={formatSAR(computed.totalDue)}
+        suggestedAmount={Math.round(computed.totalDue * 100) / 100}
         shopName={shopProfile.name}
       />
     </div>

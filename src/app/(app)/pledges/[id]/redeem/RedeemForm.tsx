@@ -14,7 +14,7 @@ export default function RedeemForm({
   contractNumber,
   itemDescription,
   dateLabel,
-  amountLabel,
+  suggestedAmount,
   shopName,
 }: {
   pledgeId: number;
@@ -23,12 +23,19 @@ export default function RedeemForm({
   contractNumber: string;
   itemDescription: string;
   dateLabel: string;
-  amountLabel: string;
+  suggestedAmount: number;
   shopName: string;
 }) {
   const [isOtherReceiver, setIsOtherReceiver] = useState(false);
   const [receiverName, setReceiverName] = useState("");
   const [receiverNationalId, setReceiverNationalId] = useState("");
+  const [settlementAmount, setSettlementAmount] = useState(String(suggestedAmount));
+
+  const amountLabel = new Intl.NumberFormat("ar-SA", {
+    style: "currency",
+    currency: "SAR",
+    maximumFractionDigits: 2,
+  }).format(Number(settlementAmount) || 0);
 
   const [state, formAction, pending] = useActionState(
     async (_prev: { error?: string }, formData: FormData) => redeemPledgeFormAction(formData),
@@ -85,6 +92,28 @@ export default function RedeemForm({
             </div>
           </div>
         )}
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 className="mb-3 font-semibold text-slate-800">مبلغ الاسترداد</h2>
+        <label htmlFor="settlement_amount" className="mb-1 block text-sm font-medium text-slate-700">
+          المبلغ المستلم من العميل (ر.س) <span className="text-red-500">*</span>
+        </label>
+        <input
+          id="settlement_amount"
+          name="settlement_amount"
+          type="number"
+          min="0"
+          step="0.01"
+          required
+          value={settlementAmount}
+          onChange={(e) => setSettlementAmount(e.target.value)}
+          className="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
+        />
+        <p className="mt-1 text-xs text-slate-500">
+          المبلغ المحسوب تلقائيًا: {new Intl.NumberFormat("ar-SA", { style: "currency", currency: "SAR", maximumFractionDigits: 2 }).format(suggestedAmount)}
+          {" "}- يمكن تعديله عند الحاجة (تسوية أو خصم).
+        </p>
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-5">

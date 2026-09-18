@@ -186,10 +186,14 @@ export default function PledgeForm({
         <h2 className="mb-4 font-semibold text-slate-800">بيانات القطعة والشراء</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <Field label="رقم الفاتورة" name="contract_number" required defaultValue={nextContractNumber} />
-            <p className="mt-1 text-xs text-slate-500">
-              مُولَّد تلقائيًا. عدّله يدويًا فقط لتسجيل فاتورة قديمة بأثر رجعي.
-            </p>
+            <Field
+              label="رقم الفاتورة"
+              name="contract_number"
+              required
+              defaultValue={nextContractNumber}
+              readOnly
+            />
+            <p className="mt-1 text-xs text-slate-500">مُولَّد تلقائيًا ولا يمكن تعديله.</p>
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">
@@ -319,6 +323,7 @@ function Field({
   defaultValue,
   value,
   onChange,
+  readOnly = false,
 }: {
   label: string;
   name: string;
@@ -328,6 +333,7 @@ function Field({
   defaultValue?: string;
   value?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  readOnly?: boolean;
 }) {
   return (
     <div>
@@ -343,7 +349,11 @@ function Field({
         defaultValue={value === undefined ? defaultValue : undefined}
         value={value}
         onChange={onChange}
-        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
+        readOnly={readOnly}
+        tabIndex={readOnly ? -1 : undefined}
+        className={`w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600 ${
+          readOnly ? "bg-slate-100 text-slate-600" : ""
+        }`}
       />
     </div>
   );

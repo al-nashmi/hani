@@ -141,6 +141,46 @@ export async function createCustomerFormAction(formData: FormData): Promise<{ er
   redirect(`/customers/${customer.id}`);
 }
 
+export async function updateCustomerFormAction(formData: FormData): Promise<{ error?: string }> {
+  const id = toId(formData.get("customer_id"));
+  if (id === null) {
+    return { error: "بيانات غير صحيحة" };
+  }
+  const full_name = String(formData.get("full_name") ?? "").trim();
+  const national_id = String(formData.get("national_id") ?? "").trim();
+  if (!full_name || !national_id) {
+    return { error: "الاسم ورقم الهوية مطلوبان" };
+  }
+  const existing = await findCustomerByNationalId(national_id);
+  if (existing && existing.id !== id) {
+    return { error: "رقم الهوية مسجل مسبقًا لعميل آخر" };
+  }
+  const id_issue_date = String(formData.get("id_issue_date") ?? "").trim();
+  if (id_issue_date && !isValidDateStr(id_issue_date)) {
+    return { error: "تاريخ إصدار الهوية غير صحيح" };
+  }
+  const nationality = String(formData.get("nationality") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  const id_issue_place = String(formData.get("id_issue_place") ?? "").trim();
+
+  try {
+    await sql`
+      UPDATE customers
+      SET full_name = ${full_name}, national_id = ${national_id}, nationality = ${nationality || null},
+          phone = ${phone || null}, email = ${email || null},
+          id_issue_date = ${id_issue_date || null}, id_issue_place = ${id_issue_place || null}
+      WHERE id = ${id}
+    `;
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      return { error: "رقم الهوية مسجل مسبقًا لعميل آخر" };
+    }
+    throw err;
+  }
+  redirect(`/customers/${id}`);
+}
+
 // ---------- Pledges ----------
 
 export async function listPledges(filter?: {
@@ -522,8 +562,11 @@ export async function redeemPledgeFormAction(formData: FormData): Promise<{ erro
     return { error: "لا يمكن تسجيل إعادة الشراء لهذه الفاتورة" };
   }
 
-  const computed = computePledge(pledge, todayUtc());
-  const settlement = Math.round(computed.totalDue * 100) / 100;
+  const settlementRaw = Number(formData.get("settlement_amount"));
+  if (!Number.isFinite(settlementRaw) || settlementRaw < 0) {
+    return { error: "مبلغ الاسترداد غير صحيح" };
+  }
+  const settlement = Math.round(settlementRaw * 100) / 100;
 
   await sql`
     UPDATE pledges
