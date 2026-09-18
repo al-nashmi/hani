@@ -20,7 +20,7 @@ export default function LoginPage() {
         className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-sm border border-slate-200"
       >
         <div className="mb-6 text-center">
-          <h1 className="text-xl font-bold text-teal-800">مجوهرات هاني النمر</h1>
+          <h1 className="text-xl font-bold text-teal-800">حسين عبدالصمد للمجوهرات</h1>
           <p className="mt-1 text-sm text-slate-500">نظام إدارة المشتريات</p>
         </div>
 

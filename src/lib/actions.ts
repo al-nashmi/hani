@@ -650,7 +650,7 @@ export async function getShopProfile(): Promise<ShopProfile> {
   return (
     rows[0] ?? {
       id: 1,
-      name: "مجوهرات هاني النمر",
+      name: "حسين عبدالصمد للمجوهرات",
       commercial_registration: null,
       phone: null,
       address: null,

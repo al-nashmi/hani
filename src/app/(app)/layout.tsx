@@ -14,7 +14,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       <header className="print:hidden hidden border-b border-slate-200 bg-white md:block">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <Link href="/" className="text-lg font-bold text-teal-800">
-            مجوهرات هاني النمر
+            حسين عبدالصمد للمجوهرات
           </Link>
           <nav className="flex items-center gap-1 text-sm">
             <Link href="/" className="rounded-lg px-3 py-2 font-medium text-slate-700 hover:bg-slate-100">
@@ -57,7 +57,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       {/* Mobile top bar: logo + notifications only, Instagram-style */}
       <header className="print:hidden sticky top-0 z-20 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-2.5 md:hidden">
         <Link href="/" className="text-base font-bold text-teal-800">
-          مجوهرات هاني النمر
+          حسين عبدالصمد للمجوهرات
         </Link>
         <NotificationBell reminders={reminders} />
       </header>

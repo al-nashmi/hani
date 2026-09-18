@@ -9,7 +9,7 @@ const tajawal = Tajawal({
 });
 
 export const metadata: Metadata = {
-  title: "مجوهرات هاني النمر - إدارة المشتريات",
+  title: "حسين عبدالصمد للمجوهرات - إدارة المشتريات",
   description: "نظام تسجيل ومتابعة عمليات شراء واسترداد الذهب والمجوهرات",
 };
 

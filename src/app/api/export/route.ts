@@ -74,7 +74,7 @@ export async function GET() {
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="hani-jewelry-export-${dateStamp}.xlsx"`,
+      "Content-Disposition": `attachment; filename="hussein-abdulsamad-jewelry-export-${dateStamp}.xlsx"`,
     },
   });
 }
