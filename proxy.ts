@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth";
+import { SESSION_COOKIE, createSessionToken, sessionCookieOptions, verifySessionToken } from "@/lib/auth";
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -19,7 +19,11 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next();
+  // Slide the expiry forward on every authenticated request, so the session
+  // only times out after real inactivity instead of a fixed length.
+  const response = NextResponse.next();
+  response.cookies.set(SESSION_COOKIE, createSessionToken(), sessionCookieOptions());
+  return response;
 }
 
 export const config = {

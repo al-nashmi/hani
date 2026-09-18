@@ -11,7 +11,7 @@ import {
   type PledgeWithCustomer,
   type ShopProfile,
 } from "./db";
-import { checkPassword, createSessionToken, SESSION_COOKIE } from "./auth";
+import { checkPassword, createSessionToken, sessionCookieOptions, SESSION_COOKIE } from "./auth";
 import { computePledge, formatDate, todayUtc } from "./pledge-calc";
 
 const CONTACT_METHODS: ContactMethod[] = ["phone", "whatsapp", "sms", "in_person", "other"];
@@ -42,13 +42,7 @@ export async function loginAction(formData: FormData): Promise<{ error?: string 
     return { error: "كلمة المرور غير صحيحة" };
   }
   const jar = await cookies();
-  jar.set(SESSION_COOKIE, createSessionToken(), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-  });
+  jar.set(SESSION_COOKIE, createSessionToken(), sessionCookieOptions());
   redirect("/");
 }
 
