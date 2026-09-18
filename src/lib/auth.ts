@@ -1,7 +1,19 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 export const SESSION_COOKIE = "hani_session";
-const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 يوم
+// Sliding expiry: proxy.ts reissues the cookie on every authenticated request,
+// so this is effectively "log out after 30 minutes of inactivity", not a fixed session length.
+const SESSION_TTL_MS = 30 * 60 * 1000; // 30 دقيقة من عدم النشاط
+
+export function sessionCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: "/",
+    maxAge: SESSION_TTL_MS / 1000,
+  };
+}
 
 function getSecret(): string {
   const secret = process.env.SESSION_SECRET;
