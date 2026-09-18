@@ -23,11 +23,16 @@ const SORT_KEYS: PledgeSortKey[] = [
 ];
 
 const PAGE_SIZE = 50;
+const STATUS_KEYS: PledgeStatusFilter[] = FILTERS.map((f) => f.key);
 
 export default async function DashboardPage({ searchParams }: PageProps<"/">) {
   const params = await searchParams;
   const search = typeof params.q === "string" ? params.q : "";
-  const filter = (typeof params.status === "string" ? params.status : "all") as PledgeStatusFilter;
+  const filter = (
+    typeof params.status === "string" && STATUS_KEYS.includes(params.status as PledgeStatusFilter)
+      ? params.status
+      : "all"
+  ) as PledgeStatusFilter;
   const hasSortParam = typeof params.sort === "string";
   const sortKey = (
     hasSortParam && SORT_KEYS.includes(params.sort as PledgeSortKey) ? params.sort : "start_date"

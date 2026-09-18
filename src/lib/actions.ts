@@ -16,6 +16,24 @@ import { computePledge, formatDate, todayUtc } from "./pledge-calc";
 
 const CONTACT_METHODS: ContactMethod[] = ["phone", "whatsapp", "sms", "in_person", "other"];
 
+/** Postgres `integer` columns reject non-whole or out-of-range values with an unhandled error;
+ * validate ids from route params / form fields against that range before they reach a query. */
+function toId(value: unknown): number | null {
+  const n = Number(value);
+  return Number.isInteger(n) && n > 0 && n <= 2147483647 ? n : null;
+}
+
+/** True for a Postgres unique-violation (SQLSTATE 23505) — used to turn a race between
+ * the pre-insert duplicate check and the insert itself into a friendly error instead of a crash. */
+function isUniqueViolation(err: unknown): boolean {
+  return typeof err === "object" && err !== null && "code" in err && (err as { code?: string }).code === "23505";
+}
+
+/** A "YYYY-MM-DD" string that's also a real calendar date — a `date` column rejects anything else with an unhandled error. */
+function isValidDateStr(s: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(new Date(s).getTime());
+}
+
 // ---------- Auth ----------
 
 export async function loginAction(formData: FormData): Promise<{ error?: string }> {
@@ -63,7 +81,9 @@ export async function listCustomers(search?: string): Promise<Customer[]> {
 }
 
 export async function getCustomer(id: number): Promise<Customer | null> {
-  const rows = (await sql`SELECT * FROM customers WHERE id = ${id}`) as Customer[];
+  const safeId = toId(id);
+  if (safeId === null) return null;
+  const rows = (await sql`SELECT * FROM customers WHERE id = ${safeId}`) as Customer[];
   return rows[0] ?? null;
 }
 
@@ -97,15 +117,27 @@ export async function createCustomerFormAction(formData: FormData): Promise<{ er
   if (existing) {
     return { error: "رقم الهوية مسجل مسبقًا لعميل آخر" };
   }
-  const customer = await createCustomer({
-    full_name,
-    national_id,
-    nationality: String(formData.get("nationality") ?? "").trim() || undefined,
-    phone: String(formData.get("phone") ?? "").trim() || undefined,
-    email: String(formData.get("email") ?? "").trim() || undefined,
-    id_issue_date: String(formData.get("id_issue_date") ?? "").trim() || undefined,
-    id_issue_place: String(formData.get("id_issue_place") ?? "").trim() || undefined,
-  });
+  const id_issue_date = String(formData.get("id_issue_date") ?? "").trim();
+  if (id_issue_date && !isValidDateStr(id_issue_date)) {
+    return { error: "تاريخ إصدار الهوية غير صحيح" };
+  }
+  let customer;
+  try {
+    customer = await createCustomer({
+      full_name,
+      national_id,
+      nationality: String(formData.get("nationality") ?? "").trim() || undefined,
+      phone: String(formData.get("phone") ?? "").trim() || undefined,
+      email: String(formData.get("email") ?? "").trim() || undefined,
+      id_issue_date: id_issue_date || undefined,
+      id_issue_place: String(formData.get("id_issue_place") ?? "").trim() || undefined,
+    });
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      return { error: "رقم الهوية مسجل مسبقًا لعميل آخر" };
+    }
+    throw err;
+  }
   redirect(`/customers/${customer.id}`);
 }
 
@@ -189,7 +221,10 @@ export async function listPledgesPage(opts: {
 }): Promise<PledgesPageResult> {
   const search = opts.search?.trim();
   const q = search ? `%${search}%` : null;
-  const statusClause = opts.status && opts.status !== "all" ? PLEDGE_STATUS_WHERE[opts.status] : null;
+  const statusClause =
+    opts.status && opts.status !== "all" && Object.hasOwn(PLEDGE_STATUS_WHERE, opts.status)
+      ? PLEDGE_STATUS_WHERE[opts.status]
+      : null;
   const orderExpr = PLEDGE_SORT_EXPR[opts.sortKey ?? "start_date"] ?? PLEDGE_SORT_EXPR.start_date;
   const dir = opts.sortDir === "asc" ? "ASC" : "DESC";
   const pageSize = opts.pageSize && opts.pageSize > 0 ? Math.min(opts.pageSize, 200) : 50;
@@ -301,18 +336,22 @@ export async function listReminders(): Promise<ReminderItem[]> {
 }
 
 export async function getPledge(id: number): Promise<PledgeWithCustomer | null> {
+  const safeId = toId(id);
+  if (safeId === null) return null;
   const rows = (await sql`
     SELECT p.*, c.full_name AS customer_full_name, c.national_id AS customer_national_id, c.phone AS customer_phone
     FROM pledges p
     JOIN customers c ON c.id = p.customer_id
-    WHERE p.id = ${id}
+    WHERE p.id = ${safeId}
   `) as PledgeWithCustomer[];
   return rows[0] ?? null;
 }
 
 export async function listPledgesForCustomer(customerId: number): Promise<Pledge[]> {
+  const safeId = toId(customerId);
+  if (safeId === null) return [];
   return (await sql`
-    SELECT * FROM pledges WHERE customer_id = ${customerId} ORDER BY created_at DESC
+    SELECT * FROM pledges WHERE customer_id = ${safeId} ORDER BY created_at DESC
   `) as Pledge[];
 }
 
@@ -330,7 +369,7 @@ export async function getNextContractNumber(): Promise<string> {
 
 export async function createPledgeFormAction(formData: FormData): Promise<{ error?: string }> {
   const customerMode = String(formData.get("customer_mode") ?? "existing");
-  let customer_id = Number(formData.get("customer_id"));
+  let customer_id = toId(formData.get("customer_id")) ?? 0;
 
   if (customerMode === "new") {
     const full_name = String(formData.get("new_full_name") ?? "").trim();
@@ -342,16 +381,27 @@ export async function createPledgeFormAction(formData: FormData): Promise<{ erro
     if (existingCustomer) {
       customer_id = existingCustomer.id;
     } else {
-      const customer = await createCustomer({
-        full_name,
-        national_id,
-        nationality: String(formData.get("new_nationality") ?? "").trim() || undefined,
-        phone: String(formData.get("new_phone") ?? "").trim() || undefined,
-        email: String(formData.get("new_email") ?? "").trim() || undefined,
-        id_issue_date: String(formData.get("new_id_issue_date") ?? "").trim() || undefined,
-        id_issue_place: String(formData.get("new_id_issue_place") ?? "").trim() || undefined,
-      });
-      customer_id = customer.id;
+      const new_id_issue_date = String(formData.get("new_id_issue_date") ?? "").trim();
+      if (new_id_issue_date && !isValidDateStr(new_id_issue_date)) {
+        return { error: "تاريخ إصدار هوية العميل الجديد غير صحيح" };
+      }
+      try {
+        const customer = await createCustomer({
+          full_name,
+          national_id,
+          nationality: String(formData.get("new_nationality") ?? "").trim() || undefined,
+          phone: String(formData.get("new_phone") ?? "").trim() || undefined,
+          email: String(formData.get("new_email") ?? "").trim() || undefined,
+          id_issue_date: new_id_issue_date || undefined,
+          id_issue_place: String(formData.get("new_id_issue_place") ?? "").trim() || undefined,
+        });
+        customer_id = customer.id;
+      } catch (err) {
+        if (isUniqueViolation(err)) {
+          return { error: "رقم الهوية مسجل مسبقًا لعميل آخر" };
+        }
+        throw err;
+      }
     }
   }
 
@@ -377,6 +427,9 @@ export async function createPledgeFormAction(formData: FormData): Promise<{ erro
   if (!customer_id || !contract_number || !item_type || !item_description || !start_date) {
     return { error: "الرجاء تعبئة جميع الحقول المطلوبة" };
   }
+  if (!isValidDateStr(start_date)) {
+    return { error: "تاريخ الشراء غير صحيح" };
+  }
   if (!customer_signature.startsWith("data:image/")) {
     return { error: "توقيع البائع (العميل) مطلوب" };
   }
@@ -398,6 +451,9 @@ export async function createPledgeFormAction(formData: FormData): Promise<{ erro
   if (!Number.isFinite(period_days) || period_days <= 0) {
     return { error: "مدة الاسترداد غير صحيحة" };
   }
+  if (weight_grams && (!Number.isFinite(Number(weight_grams)) || Number(weight_grams) < 0)) {
+    return { error: "وزن القطعة غير صحيح" };
+  }
 
   const existing = (await sql`
     SELECT id FROM pledges WHERE contract_number = ${contract_number}
@@ -406,26 +462,34 @@ export async function createPledgeFormAction(formData: FormData): Promise<{ erro
     return { error: "رقم العقد/الفاتورة مستخدم مسبقًا" };
   }
 
-  const rows = (await sql`
-    INSERT INTO pledges (
-      contract_number, customer_id, item_type, item_description, weight_grams,
-      reference_number, box_number, family_group, principal_amount,
-      monthly_rate_percent, period_days, start_date, notes, customer_signature, item_photo
-    ) VALUES (
-      ${contract_number}, ${customer_id}, ${item_type}, ${item_description},
-      ${weight_grams ? Number(weight_grams) : null}, ${reference_number || null},
-      ${box_number || null}, ${family_group || null}, ${principal_amount},
-      ${monthly_rate_percent}, ${period_days}, ${start_date}, ${notes || null}, ${customer_signature},
-      ${item_photo || null}
-    )
-    RETURNING id
-  `) as { id: number }[];
+  let rows: { id: number }[];
+  try {
+    rows = (await sql`
+      INSERT INTO pledges (
+        contract_number, customer_id, item_type, item_description, weight_grams,
+        reference_number, box_number, family_group, principal_amount,
+        monthly_rate_percent, period_days, start_date, notes, customer_signature, item_photo
+      ) VALUES (
+        ${contract_number}, ${customer_id}, ${item_type}, ${item_description},
+        ${weight_grams ? Number(weight_grams) : null}, ${reference_number || null},
+        ${box_number || null}, ${family_group || null}, ${principal_amount},
+        ${monthly_rate_percent}, ${period_days}, ${start_date}, ${notes || null}, ${customer_signature},
+        ${item_photo || null}
+      )
+      RETURNING id
+    `) as { id: number }[];
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      return { error: "رقم العقد/الفاتورة مستخدم مسبقًا" };
+    }
+    throw err;
+  }
 
   redirect(`/pledges/${rows[0].id}`);
 }
 
 export async function redeemPledgeFormAction(formData: FormData): Promise<{ error?: string }> {
-  const pledgeId = Number(formData.get("pledge_id"));
+  const pledgeId = toId(formData.get("pledge_id")) ?? 0;
   const receipt_signature = String(formData.get("receipt_signature") ?? "").trim();
   const isOtherReceiver = String(formData.get("is_other_receiver") ?? "") === "true";
   const receiver_full_name = String(formData.get("receiver_full_name") ?? "").trim();
@@ -495,9 +559,12 @@ export async function listContactLogsForPledge(pledgeId: number): Promise<Contac
 }
 
 export async function createContactLogAction(formData: FormData): Promise<{ error?: string }> {
-  const customer_id = Number(formData.get("customer_id"));
+  const customer_id = toId(formData.get("customer_id")) ?? 0;
   const pledgeIdRaw = String(formData.get("pledge_id") ?? "").trim();
-  const pledge_id = pledgeIdRaw ? Number(pledgeIdRaw) : null;
+  const pledge_id = pledgeIdRaw ? toId(pledgeIdRaw) : null;
+  if (pledgeIdRaw && pledge_id === null) {
+    return { error: "بيانات غير صحيحة" };
+  }
   const contact_method = String(formData.get("contact_method") ?? "").trim() as ContactMethod;
   const notes = String(formData.get("notes") ?? "").trim();
   const contactedAtRaw = String(formData.get("contacted_at") ?? "").trim();
