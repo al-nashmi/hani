@@ -66,8 +66,14 @@ export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[
           <Info label="مدة الاسترداد" value={`${pledge.period_days} يوم`} />
           <Info label="تاريخ الشراء" value={formatDate(pledge.start_date)} />
           <Info label="تاريخ انتهاء الاسترداد" value={computed.endDate.toISOString().slice(0, 10)} />
-          <Info label="الأيام المستهلكة" value={String(computed.daysElapsed)} />
-          <Info label="الأيام المتبقية" value={String(computed.daysRemaining)} />
+          <div>
+            <p className="text-xs text-slate-500">الأيام (المستهلكة / المتبقية)</p>
+            <p className="mt-0.5 font-medium">
+              <span className="text-red-600">{computed.daysElapsed} يوم</span>
+              <span className="text-slate-400"> / </span>
+              <span className="text-emerald-600">{computed.daysRemaining} يوم</span>
+            </p>
+          </div>
           <Info label="قيمة الاسترداد المتراكمة حتى اليوم" value={formatSAR(computed.feeAccrued)} />
           <Info label="إجمالي مبلغ الاسترداد اليوم" value={formatSAR(computed.totalDue)} />
         </div>
