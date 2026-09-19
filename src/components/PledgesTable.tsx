@@ -83,7 +83,14 @@ const COLUMNS: Column[] = [
     tier: "always",
     sortKey: "days_remaining",
     defaultDir: "asc",
-    render: (r) => r.computed.daysRemaining,
+    render: (r) => <span className="text-emerald-600">{r.computed.daysRemaining}</span>,
+  },
+  {
+    key: "daysElapsed",
+    label: "أيام مستهلكة",
+    tier: "xl",
+    defaultDir: "desc",
+    render: (r) => <span className="text-red-600">{r.computed.daysElapsed}</span>,
   },
   {
     key: "status",
@@ -115,13 +122,6 @@ const COLUMNS: Column[] = [
     sortKey: "principal_amount",
     defaultDir: "desc",
     render: (r) => compactSAR.format(Number(r.pledge.principal_amount)),
-  },
-  {
-    key: "daysElapsed",
-    label: "أيام مستهلكة",
-    tier: "xl",
-    defaultDir: "desc",
-    render: (r) => r.computed.daysElapsed,
   },
 ];
 
