@@ -6,7 +6,7 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 // The Neon driver parses Postgres DATE/TIMESTAMPTZ columns into native Date
 // objects (not strings), even though our types say `string` for simplicity.
-function toUtcDate(value: string | Date): Date {
+export function toUtcDate(value: string | Date): Date {
   if (value instanceof Date) {
     return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()));
   }
