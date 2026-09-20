@@ -13,6 +13,8 @@ import {
 } from "./db";
 import { checkPassword, createSessionToken, sessionCookieOptions, SESSION_COOKIE } from "./auth";
 import { computePledge, formatDate, normalizeSaudiPhone, todayUtc } from "./pledge-calc";
+import { runScanWithLog } from "./haraj-scraper";
+import type { WatchLeadKind, WatchLeadStatus, WatchLeadWithImages } from "./db";
 
 const CONTACT_METHODS: ContactMethod[] = ["phone", "whatsapp", "sms", "in_person", "other"];
 
@@ -683,4 +685,57 @@ export async function updateShopProfileFormAction(formData: FormData): Promise<{
   `;
 
   redirect("/profile");
+}
+
+// ---------- Opportunity Finder (الباحث عن الفرص) ----------
+
+const WATCH_LEAD_STATUSES: WatchLeadStatus[] = ["new", "contacted", "dismissed"];
+
+export async function listWatchLeads(kind: WatchLeadKind, status?: string): Promise<WatchLeadWithImages[]> {
+  const statusFilter = status && (WATCH_LEAD_STATUSES as string[]).includes(status) ? (status as WatchLeadStatus) : null;
+
+  const leads = statusFilter
+    ? await sql`SELECT * FROM watch_leads WHERE kind = ${kind} AND status = ${statusFilter} ORDER BY first_seen_at DESC`
+    : await sql`SELECT * FROM watch_leads WHERE kind = ${kind} ORDER BY first_seen_at DESC`;
+
+  if (leads.length === 0) return [];
+
+  const images = statusFilter
+    ? await sql`
+        SELECT wli.lead_id, wli.image_url FROM watch_lead_images wli
+        JOIN watch_leads wl ON wl.id = wli.lead_id
+        WHERE wl.kind = ${kind} AND wl.status = ${statusFilter}
+        ORDER BY wli.lead_id, wli.sort_order
+      `
+    : await sql`
+        SELECT wli.lead_id, wli.image_url FROM watch_lead_images wli
+        JOIN watch_leads wl ON wl.id = wli.lead_id
+        WHERE wl.kind = ${kind}
+        ORDER BY wli.lead_id, wli.sort_order
+      `;
+
+  const imagesByLead = new Map<number, string[]>();
+  for (const row of images as { lead_id: number; image_url: string }[]) {
+    const list = imagesByLead.get(row.lead_id) ?? [];
+    list.push(row.image_url);
+    imagesByLead.set(row.lead_id, list);
+  }
+
+  return (leads as WatchLeadWithImages[]).map((lead) => ({ ...lead, images: imagesByLead.get(lead.id) ?? [] }));
+}
+
+export async function updateWatchLeadStatusAction(formData: FormData): Promise<void> {
+  const id = toId(formData.get("id"));
+  const status = String(formData.get("status") ?? "");
+  const kind = String(formData.get("kind") ?? "");
+  if (!id || !WATCH_LEAD_STATUSES.includes(status as WatchLeadStatus)) return;
+
+  await sql`UPDATE watch_leads SET status = ${status} WHERE id = ${id}`;
+  redirect(kind === "wanted" ? "/opportunities/wanted" : "/opportunities/for-sale");
+}
+
+export async function runManualScanAction(formData: FormData): Promise<void> {
+  const kind = String(formData.get("kind") ?? "");
+  await runScanWithLog("manual");
+  redirect(kind === "wanted" ? "/opportunities/wanted" : "/opportunities/for-sale");
 }

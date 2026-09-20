@@ -8,6 +8,7 @@ export function proxy(request: NextRequest) {
     pathname === "/login" ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/login") ||
+    pathname === "/api/opportunities/scan" ||
     pathname === "/favicon.ico";
 
   if (isPublic) return NextResponse.next();

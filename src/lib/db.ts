@@ -103,3 +103,46 @@ export type ShopProfile = {
   stamp: string | null;
   updated_at: string | Date;
 };
+
+export type WatchLeadKind = "for_sale" | "wanted";
+export type WatchLeadPriceType = "fixed" | "offer";
+export type WatchLeadStatus = "new" | "contacted" | "dismissed";
+
+export type WatchLead = {
+  id: number;
+  kind: WatchLeadKind;
+  source: string;
+  external_id: string;
+  url: string;
+  title: string;
+  brand: string | null;
+  price: string | null;
+  price_type: WatchLeadPriceType | null;
+  description: string | null;
+  city: string | null;
+  posted_at: string | Date | null;
+  first_seen_at: string | Date;
+  status: WatchLeadStatus;
+};
+
+export type WatchLeadImage = {
+  id: number;
+  lead_id: number;
+  image_url: string;
+  sort_order: number;
+};
+
+export type WatchLeadWithImages = WatchLead & { images: string[] };
+
+export type ScanLogStatus = "running" | "success" | "error";
+
+export type ScanLog = {
+  id: number;
+  started_at: string | Date;
+  finished_at: string | Date | null;
+  status: ScanLogStatus;
+  new_for_sale: number;
+  new_wanted: number;
+  error_message: string | null;
+  trigger_source: "cron" | "manual";
+};

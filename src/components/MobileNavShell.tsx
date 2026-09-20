@@ -24,6 +24,13 @@ export default function MobileNavShell({
           >
             <div className="mx-auto mb-2 mt-1 h-1.5 w-10 rounded-full bg-slate-200" />
             <Link
+              href="/opportunities/for-sale"
+              onClick={() => setOpen(false)}
+              className="block rounded-lg px-4 py-3 text-sm font-medium text-slate-700 active:bg-slate-100"
+            >
+              الباحث عن الفرص
+            </Link>
+            <Link
               href="/profile"
               onClick={() => setOpen(false)}
               className="block rounded-lg px-4 py-3 text-sm font-medium text-slate-700 active:bg-slate-100"
