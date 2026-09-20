@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getPledge, listContactLogsForPledge } from "@/lib/actions";
-import { computePledge, formatDate, formatDateTime, formatSAR, todayUtc } from "@/lib/pledge-calc";
+import { getPledge, getShopProfile, listContactLogsForPledge } from "@/lib/actions";
+import { computePledge, formatDate, formatDateTime, formatSAR, normalizeSaudiPhone, todayUtc } from "@/lib/pledge-calc";
 import StatusBadge from "@/components/StatusBadge";
 import ContactLogForm from "./ContactLogForm";
 import ContactLogTable from "./ContactLogTable";
@@ -20,8 +20,12 @@ export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[
   const pledge = await getPledge(Number(id));
   if (!pledge) notFound();
 
-  const contactLogs = await listContactLogsForPledge(pledge.id);
+  const [contactLogs, shopProfile] = await Promise.all([
+    listContactLogsForPledge(pledge.id),
+    getShopProfile(),
+  ]);
   const computed = computePledge(pledge, todayUtc());
+  const normalizedPhone = pledge.customer_phone ? normalizeSaudiPhone(pledge.customer_phone) : null;
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -138,7 +142,15 @@ export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[
 
       <div className="space-y-3">
         <h2 className="text-lg font-semibold text-slate-800">سجل التواصل مع العميل</h2>
-        <ContactLogForm customerId={pledge.customer_id} pledgeId={pledge.id} />
+        <ContactLogForm
+          customerId={pledge.customer_id}
+          pledgeId={pledge.id}
+          customerPhone={pledge.customer_phone}
+          normalizedPhone={normalizedPhone}
+          customerName={pledge.customer_full_name}
+          contractNumber={pledge.contract_number}
+          shopName={shopProfile.name}
+        />
         <ContactLogTable
           logs={contactLogs.map((log) => ({
             id: log.id,
