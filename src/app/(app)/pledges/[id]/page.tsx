@@ -149,6 +149,8 @@ export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[
           normalizedPhone={normalizedPhone}
           customerName={pledge.customer_full_name}
           contractNumber={pledge.contract_number}
+          daysRemaining={computed.daysRemaining}
+          principalAmount={formatSAR(Number(pledge.principal_amount))}
           shopName={shopProfile.name}
         />
         <ContactLogTable
