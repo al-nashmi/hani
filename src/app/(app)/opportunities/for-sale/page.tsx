@@ -1,8 +1,10 @@
 import { listWatchLeads, runManualScanAction } from "@/lib/actions";
 import OpportunitiesTabs from "../OpportunitiesTabs";
 import LeadCard from "../LeadCard";
+import ScanButton from "../ScanButton";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export default async function ForSalePage({ searchParams }: PageProps<"/opportunities/for-sale">) {
   const params = await searchParams;
@@ -15,9 +17,7 @@ export default async function ForSalePage({ searchParams }: PageProps<"/opportun
         <h1 className="text-xl font-bold text-slate-800">الباحث عن الفرص — فرص شراء</h1>
         <form action={runManualScanAction}>
           <input type="hidden" name="kind" value="for_sale" />
-          <button className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800">
-            تحديث الآن
-          </button>
+          <ScanButton />
         </form>
       </div>
 

@@ -25,8 +25,8 @@ export const WATCH_BRANDS = [
   "جايجر لوكولتر",
 ] as const;
 
-const REQUEST_TIMEOUT_MS = 15_000;
-const REQUEST_DELAY_MS = 800;
+const REQUEST_TIMEOUT_MS = 8_000;
+const SEARCH_CONCURRENCY = 6;
 const MAX_IMAGES_PER_LEAD = 8;
 const MAX_DESCRIPTION_LEN = 2000;
 
@@ -43,8 +43,20 @@ type ScrapedListing = {
   images: string[];
 };
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+/** Runs `items` through `task` with at most `limit` in flight at once — keeps the
+ * whole scan comfortably inside a serverless function's execution time limit
+ * instead of paying every request's latency sequentially. */
+async function mapWithConcurrency<T, R>(items: T[], limit: number, task: (item: T) => Promise<R>): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await task(items[i]);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
 }
 
 /** Builds the Haraj search URL for a keyword. This is the single spot to adjust
@@ -254,28 +266,41 @@ export async function runScanWithLog(triggerSource: "cron" | "manual"): Promise<
   }
 }
 
+type SearchTask = { brand: string; kind: WatchLeadKind; query: string };
+
 export async function runOpportunityScan(): Promise<ScanResult> {
   let newForSale = 0;
   let newWanted = 0;
 
-  for (const brand of WATCH_BRANDS) {
-    for (const kind of ["for_sale", "wanted"] as WatchLeadKind[]) {
-      const query = kind === "wanted" ? `مطلوب ${brand}` : brand;
+  const tasks: SearchTask[] = WATCH_BRANDS.flatMap((brand) => [
+    { brand, kind: "for_sale" as WatchLeadKind, query: brand },
+    { brand, kind: "wanted" as WatchLeadKind, query: `مطلوب ${brand}` },
+  ]);
+
+  // Fetch + parse all brand/kind searches concurrently — this is the slow, network-bound
+  // part, and running it in parallel keeps the whole scan well inside a serverless
+  // function's execution time limit instead of paying every request's latency in series.
+  const fetched = await mapWithConcurrency(tasks, SEARCH_CONCURRENCY, async (task) => {
+    try {
+      return { kind: task.kind, listings: await searchHaraj(task.query, task.brand) };
+    } catch {
+      return { kind: task.kind, listings: [] as ScrapedListing[] };
+    }
+  });
+
+  for (const { kind, listings } of fetched) {
+    for (const listing of listings) {
+      if (kind === "wanted" && !/مطلوب|أبحث|ابحث/.test(listing.title)) continue;
+      if (kind === "for_sale" && /مطلوب/.test(listing.title)) continue;
       try {
-        const listings = await searchHaraj(query, brand);
-        for (const listing of listings) {
-          if (kind === "wanted" && !/مطلوب|أبحث|ابحث/.test(listing.title)) continue;
-          if (kind === "for_sale" && /مطلوب/.test(listing.title)) continue;
-          const created = await upsertLead(kind, listing);
-          if (created) {
-            if (kind === "for_sale") newForSale++;
-            else newWanted++;
-          }
+        const created = await upsertLead(kind, listing);
+        if (created) {
+          if (kind === "for_sale") newForSale++;
+          else newWanted++;
         }
       } catch {
-        // One brand/kind failing shouldn't abort the whole scan — move on to the next.
+        // One listing failing to save shouldn't drop the rest of the scan's results.
       }
-      await sleep(REQUEST_DELAY_MS);
     }
   }
 
