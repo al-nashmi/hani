@@ -12,7 +12,7 @@ import {
   type ShopProfile,
 } from "./db";
 import { checkPassword, createSessionToken, sessionCookieOptions, SESSION_COOKIE } from "./auth";
-import { computePledge, formatDate, todayUtc } from "./pledge-calc";
+import { computePledge, formatDate, normalizeSaudiPhone, todayUtc } from "./pledge-calc";
 
 const CONTACT_METHODS: ContactMethod[] = ["phone", "whatsapp", "sms", "in_person", "other"];
 
@@ -317,17 +317,6 @@ export type ReminderItem = {
   whatsappUrl: string | null;
 };
 
-/** Saudi mobile numbers in this DB are stored inconsistently (with/without a leading 0 or 966); best-effort normalize to E.164 digits for wa.me. */
-function normalizeSaudiPhone(raw: string): string | null {
-  let digits = raw.replace(/\D/g, "");
-  if (!digits) return null;
-  if (digits.startsWith("00")) digits = digits.slice(2);
-  if (!digits.startsWith("966")) {
-    if (digits.startsWith("0")) digits = digits.slice(1);
-    digits = `966${digits}`;
-  }
-  return digits;
-}
 
 /** Pledges whose redemption period ends within the next 15 days (not yet overdue), for the reminder notification bell. */
 export async function listReminders(): Promise<ReminderItem[]> {

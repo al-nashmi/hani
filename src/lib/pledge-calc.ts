@@ -98,6 +98,18 @@ export function formatDate(value: string | Date): string {
   }).format(toUtcDate(value));
 }
 
+/** Saudi mobile numbers in this DB are stored inconsistently (with/without a leading 0 or 966); best-effort normalize to E.164 digits for wa.me. */
+export function normalizeSaudiPhone(raw: string): string | null {
+  let digits = raw.replace(/\D/g, "");
+  if (!digits) return null;
+  if (digits.startsWith("00")) digits = digits.slice(2);
+  if (!digits.startsWith("966")) {
+    if (digits.startsWith("0")) digits = digits.slice(1);
+    digits = `966${digits}`;
+  }
+  return digits;
+}
+
 /** For real timestamps (contact log, created_at) where the time of day matters. */
 export function formatDateTime(value: string | Date): string {
   const d = value instanceof Date ? value : new Date(value);

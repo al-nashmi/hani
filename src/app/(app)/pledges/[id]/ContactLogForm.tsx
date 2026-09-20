@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useActionState, useRef, useState } from "react";
 import { createContactLogAction } from "@/lib/actions";
 import ImageAttachField from "@/components/ImageAttachField";
 
@@ -20,8 +20,30 @@ function nowLocalDatetime(): string {
   return new Date(now.getTime() - offsetMs).toISOString().slice(0, 16);
 }
 
-export default function ContactLogForm({ customerId, pledgeId }: { customerId: number; pledgeId: number }) {
+export default function ContactLogForm({
+  customerId,
+  pledgeId,
+  customerPhone,
+  normalizedPhone,
+  customerName,
+  contractNumber,
+  shopName,
+}: {
+  customerId: number;
+  pledgeId: number;
+  customerPhone: string | null;
+  normalizedPhone: string | null;
+  customerName: string;
+  contractNumber: string;
+  shopName: string;
+}) {
   const contactedAtRef = useRef<HTMLInputElement>(null);
+  const [method, setMethod] = useState("whatsapp");
+
+  const message = `السلام عليكم ${customerName}\nنتواصل معكم بخصوص فاتورتكم رقم ${contractNumber} لدى ${shopName}.`;
+  const whatsappUrl = normalizedPhone ? `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}` : null;
+  const smsUrl = customerPhone ? `sms:${customerPhone}?&body=${encodeURIComponent(message)}` : null;
+  const telUrl = customerPhone ? `tel:${customerPhone}` : null;
 
   // The datetime-local value has no timezone; convert it to an absolute
   // instant here in the browser (which knows the shop's real timezone)
@@ -47,7 +69,8 @@ export default function ContactLogForm({ customerId, pledgeId }: { customerId: n
           <select
             name="contact_method"
             required
-            defaultValue="whatsapp"
+            value={method}
+            onChange={(e) => setMethod(e.target.value)}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
           >
             {METHODS.map((m) => (
@@ -56,6 +79,51 @@ export default function ContactLogForm({ customerId, pledgeId }: { customerId: n
               </option>
             ))}
           </select>
+
+          {method === "whatsapp" && (
+            <div className="mt-2">
+              {whatsappUrl ? (
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+                >
+                  فتح واتساب مع رسالة جاهزة
+                </a>
+              ) : (
+                <p className="text-xs text-slate-400">لا يوجد جوال مسجّل لهذا العميل</p>
+              )}
+            </div>
+          )}
+          {method === "sms" && (
+            <div className="mt-2">
+              {smsUrl ? (
+                <a
+                  href={smsUrl}
+                  className="inline-block rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800"
+                >
+                  فتح الرسائل مع رسالة جاهزة
+                </a>
+              ) : (
+                <p className="text-xs text-slate-400">لا يوجد جوال مسجّل لهذا العميل</p>
+              )}
+            </div>
+          )}
+          {method === "phone" && (
+            <div className="mt-2">
+              {telUrl ? (
+                <a
+                  href={telUrl}
+                  className="inline-block rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-800"
+                >
+                  اتصال هاتفي بالعميل
+                </a>
+              ) : (
+                <p className="text-xs text-slate-400">لا يوجد جوال مسجّل لهذا العميل</p>
+              )}
+            </div>
+          )}
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-slate-700">وقت التواصل</label>
