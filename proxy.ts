@@ -2,6 +2,20 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, createSessionToken, debugLog, sessionCookieOptions, verifySessionToken } from "@/lib/auth";
 
 export async function proxy(request: NextRequest) {
+  try {
+    return await handle(request);
+  } catch (err) {
+    // TEMPORARY diagnostic: surface a proxy-level crash visibly instead of letting
+    // Next.js/Vercel handle it however they do by default, which might be masking
+    // the real cause of the stale-session bug. Remove once resolved.
+    return NextResponse.json(
+      { PROXY_CRASHED: true, message: err instanceof Error ? err.message : String(err) },
+      { status: 500 }
+    );
+  }
+}
+
+async function handle(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isPublic =
