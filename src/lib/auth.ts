@@ -33,20 +33,45 @@ export function createSessionToken(): string {
   return `${payload}.${sign(payload)}`;
 }
 
+// TEMPORARY diagnostic logging — remove once the stale-session-after-logout bug is
+// root-caused. Never let a logging failure affect the actual auth decision.
+export async function debugLog(message: string): Promise<void> {
+  try {
+    await sql`INSERT INTO debug_log (message) VALUES (${message})`;
+  } catch {
+    // ignore
+  }
+}
+
 export async function verifySessionToken(token: string | undefined | null): Promise<boolean> {
-  if (!token) return false;
+  if (!token) {
+    await debugLog("verify: no token on request");
+    return false;
+  }
   const [payload, sig] = token.split(".");
-  if (!payload || !sig) return false;
+  if (!payload || !sig) {
+    await debugLog(`verify: malformed token shape, token.length=${token.length}`);
+    return false;
+  }
   const expected = sign(payload);
   const a = Buffer.from(sig);
   const b = Buffer.from(expected);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) return false;
+  if (a.length !== b.length || !timingSafeEqual(a, b)) {
+    await debugLog(`verify: signature mismatch, payload=${payload}`);
+    return false;
+  }
 
   const [expiresStr, issuedAtStr] = payload.split(":");
   const expires = Number(expiresStr);
   const issuedAt = Number(issuedAtStr);
-  if (!Number.isFinite(expires) || Date.now() > expires) return false;
-  if (!Number.isFinite(issuedAt)) return false;
+  if (!Number.isFinite(expires) || Date.now() > expires) {
+    await debugLog(`verify: expired, expires=${expiresStr} now=${Date.now()}`);
+    return false;
+  }
+  if (!Number.isFinite(issuedAt)) {
+    await debugLog(`verify: bad issuedAt=${issuedAtStr}`);
+    return false;
+  }
 
   // A signature check alone can't catch a cookie that logout already told the
   // browser to delete but that reappeared anyway (observed on the installed iOS
@@ -56,8 +81,12 @@ export async function verifySessionToken(token: string | undefined | null): Prom
     invalidated_before: string | Date;
   }[];
   const invalidatedBefore = rows[0] ? new Date(rows[0].invalidated_before).getTime() : 0;
-  if (issuedAt < invalidatedBefore) return false;
+  if (issuedAt < invalidatedBefore) {
+    await debugLog(`verify: REJECTED stale token, issuedAt=${issuedAt} invalidatedBefore=${invalidatedBefore}`);
+    return false;
+  }
 
+  await debugLog(`verify: ACCEPTED, issuedAt=${issuedAt} invalidatedBefore=${invalidatedBefore}`);
   return true;
 }
 

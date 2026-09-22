@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { SESSION_COOKIE, createSessionToken, sessionCookieOptions, verifySessionToken } from "@/lib/auth";
+import { SESSION_COOKIE, createSessionToken, debugLog, sessionCookieOptions, verifySessionToken } from "@/lib/auth";
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -10,6 +10,9 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/api/login") ||
     pathname === "/api/opportunities/scan" ||
     pathname === "/favicon.ico";
+
+  const tokenPreview = request.cookies.get(SESSION_COOKIE)?.value?.slice(0, 12) ?? "none";
+  await debugLog(`proxy: path=${pathname} isPublic=${isPublic} ua=${request.headers.get("user-agent")?.slice(0, 60)} tokenPrefix=${tokenPreview}`);
 
   if (isPublic) return NextResponse.next();
 
