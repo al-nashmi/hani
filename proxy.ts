@@ -22,13 +22,22 @@ export function proxy(request: NextRequest) {
     return redirectResponse;
   }
 
-  // Slide the expiry forward on every authenticated request, so the session
-  // only times out after real inactivity instead of a fixed length.
   const response = NextResponse.next();
-  response.cookies.set(SESSION_COOKIE, createSessionToken(), sessionCookieOptions());
   // Never let a CDN, proxy, or the browser's own HTTP cache store an authenticated
   // response — this app renders customer/financial data behind this check.
   response.headers.set("Cache-Control", "private, no-store, max-age=0, must-revalidate");
+
+  // Server Actions (POST requests carrying this header) manage the session cookie
+  // themselves — logoutAction deletes it. Reissuing it here too would race with that
+  // deletion on the same response and silently keep the old session alive, which is
+  // exactly what made logout appear broken. Only slide the expiry on real navigations.
+  if (request.headers.get("next-action")) {
+    return response;
+  }
+
+  // Slide the expiry forward on every other authenticated request, so the session
+  // only times out after real inactivity instead of a fixed length.
+  response.cookies.set(SESSION_COOKIE, createSessionToken(), sessionCookieOptions());
   return response;
 }
 
