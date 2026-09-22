@@ -25,10 +25,19 @@ async function handle(request: NextRequest) {
     pathname === "/api/opportunities/scan" ||
     pathname === "/favicon.ico";
 
-  const tokenPreview = request.cookies.get(SESSION_COOKIE)?.value?.slice(0, 12) ?? "none";
-  await debugLog(`proxy: path=${pathname} isPublic=${isPublic} ua=${request.headers.get("user-agent")?.slice(0, 60)} tokenPrefix=${tokenPreview}`);
-
   if (isPublic) return NextResponse.next();
+
+  // TEMPORARY blunt diagnostic: unconditionally force every non-public request to
+  // /login, bypassing all session logic and DB calls entirely. If this is deployed
+  // and a visit to "/" still shows the dashboard instead of landing here, that is
+  // conclusive proof the request never reaches this function at all (e.g. served
+  // from a cache in front of it) rather than any bug in the session-check logic.
+  // Remove once resolved.
+  if (true as boolean) {
+    const forcedLoginUrl = new URL("/login", request.url);
+    forcedLoginUrl.searchParams.set("forced", "1");
+    return NextResponse.redirect(forcedLoginUrl);
+  }
 
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   if (!(await verifySessionToken(token))) {
