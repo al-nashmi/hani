@@ -11,7 +11,7 @@ import {
   type PledgeWithCustomer,
   type ShopProfile,
 } from "./db";
-import { checkPassword, createSessionToken, sessionCookieOptions, SESSION_COOKIE } from "./auth";
+import { checkPassword, createSessionToken, invalidateAllSessions, sessionCookieOptions, SESSION_COOKIE } from "./auth";
 import { computePledge, formatDate, normalizeSaudiPhone, todayUtc } from "./pledge-calc";
 import { runScanWithLog } from "./haraj-scraper";
 import type { WatchLeadKind, WatchLeadStatus, WatchLeadWithImages } from "./db";
@@ -51,6 +51,11 @@ export async function loginAction(formData: FormData): Promise<{ error?: string 
 export async function logoutAction(): Promise<void> {
   const jar = await cookies();
   jar.delete(SESSION_COOKIE);
+  // Deleting the cookie only tells this browser to drop it — it can't force out a
+  // stale copy that persists elsewhere (the installed iOS PWA has been seen resurrecting
+  // an old cookie value after a full close/reopen). Marking every token issued before
+  // now as invalid server-side makes logout hold even if that stale cookie comes back.
+  await invalidateAllSessions();
   redirect("/login");
 }
 
