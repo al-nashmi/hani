@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { SESSION_COOKIE, createSessionToken, debugLog, sessionCookieOptions, verifySessionToken } from "@/lib/auth";
+import { SESSION_COOKIE, createSessionToken, sessionCookieOptions, verifySessionToken } from "@/lib/auth";
 
 export async function proxy(request: NextRequest) {
   try {
@@ -26,18 +26,6 @@ async function handle(request: NextRequest) {
     pathname === "/favicon.ico";
 
   if (isPublic) return NextResponse.next();
-
-  // TEMPORARY blunt diagnostic: unconditionally force every non-public request to
-  // /login, bypassing all session logic and DB calls entirely. If this is deployed
-  // and a visit to "/" still shows the dashboard instead of landing here, that is
-  // conclusive proof the request never reaches this function at all (e.g. served
-  // from a cache in front of it) rather than any bug in the session-check logic.
-  // Remove once resolved.
-  if (true as boolean) {
-    const forcedLoginUrl = new URL("/login", request.url);
-    forcedLoginUrl.searchParams.set("forced", "1");
-    return NextResponse.redirect(forcedLoginUrl);
-  }
 
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   if (!(await verifySessionToken(token))) {
