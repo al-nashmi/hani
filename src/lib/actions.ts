@@ -11,7 +11,7 @@ import {
   type PledgeWithCustomer,
   type ShopProfile,
 } from "./db";
-import { checkPassword, createSessionToken, sessionCookieOptions, SESSION_COOKIE } from "./auth";
+import { checkPassword, createSessionToken, invalidateAllSessions, sessionCookieOptions, SESSION_COOKIE } from "./auth";
 import { computePledge, formatDate, normalizeSaudiPhone, todayUtc } from "./pledge-calc";
 
 const CONTACT_METHODS: ContactMethod[] = ["phone", "whatsapp", "sms", "in_person", "other"];
@@ -49,6 +49,11 @@ export async function loginAction(formData: FormData): Promise<{ error?: string 
 export async function logoutAction(): Promise<void> {
   const jar = await cookies();
   jar.delete(SESSION_COOKIE);
+  // Deleting the cookie only tells this browser to drop it — it can't force out a
+  // stale copy that persists elsewhere (an installed PWA can resurrect an old cookie
+  // value after a full close/reopen). Marking every token issued before now as
+  // invalid server-side makes logout hold even if a stale cookie comes back.
+  await invalidateAllSessions();
   redirect("/login");
 }
 

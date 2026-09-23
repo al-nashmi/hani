@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Tajawal } from "next/font/google";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import BfcacheGuard from "@/components/BfcacheGuard";
 import "./globals.css";
 
 const tajawal = Tajawal({
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 font-[var(--font-tajawal)]">
         {children}
         <ServiceWorkerRegister />
+        <BfcacheGuard />
       </body>
     </html>
   );

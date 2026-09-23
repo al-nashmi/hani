@@ -17,6 +17,12 @@ const nextConfig: NextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          // Declared statically (not just set at runtime from proxy.ts) so Vercel's
+          // edge/CDN layer reads it at build time and never caches a page from this
+          // app, regardless of whether the request even reaches the running function.
+          { key: "Cache-Control", value: "private, no-store, max-age=0, must-revalidate" },
+          { key: "CDN-Cache-Control", value: "no-store" },
+          { key: "Vercel-CDN-Cache-Control", value: "no-store" },
         ],
       },
     ];

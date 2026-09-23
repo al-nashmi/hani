@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { sql } from "./db";
 
 export const SESSION_COOKIE = "hani_session";
 // Sliding expiry: proxy.ts reissues the cookie on every authenticated request,
@@ -27,11 +28,12 @@ function sign(payload: string): string {
 
 export function createSessionToken(): string {
   const expires = Date.now() + SESSION_TTL_MS;
-  const payload = String(expires);
+  const issuedAt = Date.now();
+  const payload = `${expires}:${issuedAt}`;
   return `${payload}.${sign(payload)}`;
 }
 
-export function verifySessionToken(token: string | undefined | null): boolean {
+export async function verifySessionToken(token: string | undefined | null): Promise<boolean> {
   if (!token) return false;
   const [payload, sig] = token.split(".");
   if (!payload || !sig) return false;
@@ -39,9 +41,28 @@ export function verifySessionToken(token: string | undefined | null): boolean {
   const a = Buffer.from(sig);
   const b = Buffer.from(expected);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return false;
-  const expires = Number(payload);
+
+  const [expiresStr, issuedAtStr] = payload.split(":");
+  const expires = Number(expiresStr);
+  const issuedAt = Number(issuedAtStr);
   if (!Number.isFinite(expires) || Date.now() > expires) return false;
+  if (!Number.isFinite(issuedAt)) return false;
+
+  // A signature check alone can't catch a cookie that logout already told the
+  // browser to delete but that reappeared anyway (observed on the installed iOS
+  // PWA after a full close/reopen) — so also reject anything issued before the
+  // last logout, which invalidateAllSessions() records server-side.
+  const rows = (await sql`SELECT invalidated_before FROM session_state WHERE id = 1`) as {
+    invalidated_before: string | Date;
+  }[];
+  const invalidatedBefore = rows[0] ? new Date(rows[0].invalidated_before).getTime() : 0;
+  if (issuedAt < invalidatedBefore) return false;
+
   return true;
+}
+
+export async function invalidateAllSessions(): Promise<void> {
+  await sql`UPDATE session_state SET invalidated_before = now() WHERE id = 1`;
 }
 
 export function checkPassword(input: string): boolean {
