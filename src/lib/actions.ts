@@ -453,7 +453,6 @@ export async function createPledgeFormAction(formData: FormData): Promise<{ erro
   const reference_number = String(formData.get("reference_number") ?? "").trim();
   const box_number = String(formData.get("box_number") ?? "").trim();
   const family_group = String(formData.get("family_group") ?? "").trim();
-  const lead_sealed = formData.get("lead_sealed") === "on";
   const principal_amount = Number(formData.get("principal_amount"));
   const monthly_rate_percent = Number(formData.get("monthly_rate_percent"));
   const period_days = Number(formData.get("period_days") || 90);
@@ -505,12 +504,12 @@ export async function createPledgeFormAction(formData: FormData): Promise<{ erro
     rows = (await sql`
       INSERT INTO pledges (
         contract_number, customer_id, item_type, item_description, weight_grams,
-        reference_number, box_number, family_group, lead_sealed, principal_amount,
+        reference_number, box_number, family_group, principal_amount,
         monthly_rate_percent, period_days, start_date, notes, customer_signature, item_photo
       ) VALUES (
         ${contract_number}, ${customer_id}, ${item_type}, ${item_description},
         ${weight_grams ? Number(weight_grams) : null}, ${reference_number || null},
-        ${box_number || null}, ${family_group || null}, ${lead_sealed}, ${principal_amount},
+        ${box_number || null}, ${family_group || null}, ${principal_amount},
         ${monthly_rate_percent}, ${period_days}, ${start_date}, ${notes || null}, ${customer_signature},
         ${item_photo || null}
       )
@@ -605,7 +604,6 @@ export async function updatePledgeFormAction(formData: FormData): Promise<{ erro
   const reference_number = String(formData.get("reference_number") ?? "").trim();
   const box_number = String(formData.get("box_number") ?? "").trim();
   const family_group = String(formData.get("family_group") ?? "").trim();
-  const lead_sealed = formData.get("lead_sealed") === "on";
   const principal_amount = Number(formData.get("principal_amount"));
   const monthly_rate_percent = Number(formData.get("monthly_rate_percent"));
   const period_days = Number(formData.get("period_days") || 90);
@@ -652,7 +650,7 @@ export async function updatePledgeFormAction(formData: FormData): Promise<{ erro
       UPDATE pledges SET
         contract_number = ${contract_number}, item_type = ${item_type}, item_description = ${item_description},
         weight_grams = ${weight_grams ? Number(weight_grams) : null}, reference_number = ${reference_number || null},
-        box_number = ${box_number || null}, family_group = ${family_group || null}, lead_sealed = ${lead_sealed},
+        box_number = ${box_number || null}, family_group = ${family_group || null},
         principal_amount = ${principal_amount}, monthly_rate_percent = ${monthly_rate_percent},
         period_days = ${period_days}, start_date = ${start_date}, notes = ${notes || null},
         item_photo = ${item_photo || null}, updated_at = now()

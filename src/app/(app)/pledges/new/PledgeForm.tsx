@@ -229,10 +229,6 @@ export default function PledgeForm({
           <Field label="الرقم المرجعي" name="reference_number" />
           <Field label="رقم الصندوق" name="box_number" />
           <Field label="العائلة / المجموعة" name="family_group" />
-          <label className="flex items-center gap-2 self-end pb-2 text-sm font-medium text-slate-700">
-            <input type="checkbox" name="lead_sealed" className="h-4 w-4 rounded border-slate-300" />
-            مقفل برصاص
-          </label>
           <Field
             label="مبلغ الشراء (ريال)"
             name="principal_amount"
