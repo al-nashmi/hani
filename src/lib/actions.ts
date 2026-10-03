@@ -587,8 +587,6 @@ export async function forfeitPledgeAction(pledgeId: number): Promise<void> {
   redirect(`/pledges/${pledgeId}`);
 }
 
-const PLEDGE_STATUSES: Pledge["status"][] = ["active", "redeemed", "forfeited"];
-
 export async function updatePledgeFormAction(formData: FormData): Promise<{ error?: string }> {
   const pledgeId = toId(formData.get("pledge_id"));
   if (pledgeId === null) {
@@ -620,10 +618,6 @@ export async function updatePledgeFormAction(formData: FormData): Promise<{ erro
   const email = String(formData.get("email") ?? "").trim();
   const id_issue_date = String(formData.get("id_issue_date") ?? "").trim();
   const id_issue_place = String(formData.get("id_issue_place") ?? "").trim();
-
-  const status = String(formData.get("status") ?? "").trim() as Pledge["status"];
-  const redeemed_at = String(formData.get("redeemed_at") ?? "").trim();
-  const settlementRaw = String(formData.get("settlement_amount") ?? "").trim();
 
   if (!contract_number || !item_type || !item_description || !start_date) {
     return { error: "الرجاء تعبئة جميع الحقول المطلوبة" };
@@ -657,21 +651,6 @@ export async function updatePledgeFormAction(formData: FormData): Promise<{ erro
     return { error: "تاريخ إصدار الهوية غير صحيح" };
   }
 
-  if (!PLEDGE_STATUSES.includes(status)) {
-    return { error: "حالة الفاتورة غير صحيحة" };
-  }
-  let settlement_amount: number | null = null;
-  if (status === "redeemed") {
-    if (!redeemed_at || !isValidDateStr(redeemed_at)) {
-      return { error: "تاريخ الاسترداد غير صحيح" };
-    }
-    const settlementNum = Number(settlementRaw);
-    if (!Number.isFinite(settlementNum) || settlementNum < 0) {
-      return { error: "مبلغ الاسترداد غير صحيح" };
-    }
-    settlement_amount = Math.round(settlementNum * 100) / 100;
-  }
-
   if (contract_number !== existingPledge.contract_number) {
     const existing = (await sql`
       SELECT id FROM pledges WHERE contract_number = ${contract_number} AND id != ${pledgeId}
@@ -702,11 +681,7 @@ export async function updatePledgeFormAction(formData: FormData): Promise<{ erro
         box_number = ${box_number || null}, family_group = ${family_group || null},
         principal_amount = ${principal_amount}, monthly_rate_percent = ${monthly_rate_percent},
         period_days = ${period_days}, start_date = ${start_date}, notes = ${notes || null},
-        item_photo = ${item_photo || null},
-        status = ${status},
-        redeemed_at = ${status === "redeemed" ? redeemed_at : null},
-        settlement_amount = ${status === "redeemed" ? settlement_amount : null},
-        updated_at = now()
+        item_photo = ${item_photo || null}, updated_at = now()
       WHERE id = ${pledgeId}
     `;
   } catch (err) {

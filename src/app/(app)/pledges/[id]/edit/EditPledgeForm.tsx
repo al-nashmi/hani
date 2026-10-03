@@ -1,18 +1,12 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import { updatePledgeFormAction } from "@/lib/actions";
 import type { Customer, Pledge } from "@/lib/db";
 import { ITEM_TYPES, toISODateString } from "@/lib/pledge-calc";
 import ImageAttachField from "@/components/ImageAttachField";
 
 const initialState: { error?: string } = {};
-
-const STATUS_OPTIONS: { value: Pledge["status"]; label: string }[] = [
-  { value: "active", label: "نشطة" },
-  { value: "redeemed", label: "مستردة" },
-  { value: "forfeited", label: "مصادرة (ملك المحل)" },
-];
 
 function dateStr(value: string | Date): string {
   return typeof value === "string" ? value.slice(0, 10) : value.toISOString().slice(0, 10);
@@ -23,7 +17,6 @@ export default function EditPledgeForm({ pledge, customer }: { pledge: Pledge; c
     async (_prev: { error?: string }, formData: FormData) => updatePledgeFormAction(formData),
     initialState
   );
-  const [status, setStatus] = useState<Pledge["status"]>(pledge.status);
 
   return (
     <form action={formAction} className="space-y-6">
@@ -44,49 +37,6 @@ export default function EditPledgeForm({ pledge, customer }: { pledge: Pledge; c
             defaultValue={toISODateString(customer.id_issue_date)}
           />
           <Field label="مصدر الهوية" name="id_issue_place" defaultValue={customer.id_issue_place ?? ""} />
-        </div>
-      </section>
-
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="mb-4 font-semibold text-slate-800">حالة الفاتورة</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">
-              الحالة <span className="text-red-500">*</span>
-            </label>
-            <select
-              name="status"
-              required
-              value={status}
-              onChange={(e) => setStatus(e.target.value as Pledge["status"])}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
-            >
-              {STATUS_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          {status === "redeemed" && (
-            <>
-              <Field
-                label="تاريخ الاسترداد"
-                name="redeemed_at"
-                type="date"
-                required
-                defaultValue={pledge.redeemed_at ? dateStr(pledge.redeemed_at) : ""}
-              />
-              <Field
-                label="مبلغ الاسترداد (ريال)"
-                name="settlement_amount"
-                type="number"
-                step="0.01"
-                required
-                defaultValue={pledge.settlement_amount ?? ""}
-              />
-            </>
-          )}
         </div>
       </section>
 
