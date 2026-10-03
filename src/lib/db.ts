@@ -105,6 +105,13 @@ export type ShopProfile = {
   updated_at: string | Date;
 };
 
+export type BoxOption = {
+  id: number;
+  label: string;
+  sort_order: number;
+  created_at: string | Date;
+};
+
 export type WatchLeadKind = "for_sale" | "wanted";
 export type WatchLeadPriceType = "fixed" | "offer";
 export type WatchLeadStatus = "new" | "contacted" | "dismissed";

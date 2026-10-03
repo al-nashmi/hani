@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   sql,
+  type BoxOption,
   type ContactLogWithPledge,
   type ContactMethod,
   type Customer,
@@ -814,6 +815,35 @@ export async function updateShopProfileFormAction(formData: FormData): Promise<{
       stamp = EXCLUDED.stamp,
       updated_at = now()
   `;
+
+  redirect("/profile");
+}
+
+// ---------- Box options ----------
+
+export async function listBoxOptions(): Promise<BoxOption[]> {
+  return (await sql`SELECT * FROM box_options ORDER BY sort_order ASC`) as BoxOption[];
+}
+
+export async function addBoxOptionFormAction(formData: FormData): Promise<{ error?: string }> {
+  const label = String(formData.get("label") ?? "").trim();
+  if (!label) {
+    return { error: "الرجاء إدخال اسم أو رقم الصندوق" };
+  }
+
+  const maxRows = (await sql`SELECT COALESCE(MAX(sort_order), 0) AS max_order FROM box_options`) as {
+    max_order: number;
+  }[];
+  const nextOrder = (maxRows[0]?.max_order ?? 0) + 1;
+
+  try {
+    await sql`INSERT INTO box_options (label, sort_order) VALUES (${label}, ${nextOrder})`;
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      return { error: "هذا الصندوق مُضاف مسبقًا" };
+    }
+    throw err;
+  }
 
   redirect("/profile");
 }

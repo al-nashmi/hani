@@ -1,10 +1,11 @@
-import { getShopProfile } from "@/lib/actions";
+import { getShopProfile, listBoxOptions } from "@/lib/actions";
 import ProfileForm from "./ProfileForm";
+import BoxOptionsManager from "./BoxOptionsManager";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProfilePage() {
-  const profile = await getShopProfile();
+  const [profile, boxOptions] = await Promise.all([getShopProfile(), listBoxOptions()]);
 
   return (
     <div className="max-w-xl space-y-8">
@@ -15,6 +16,8 @@ export default async function ProfilePage() {
         </p>
         <ProfileForm profile={profile} />
       </div>
+
+      <BoxOptionsManager options={boxOptions} />
 
       <div className="rounded-xl border border-slate-200 bg-white p-5">
         <h2 className="mb-1 font-semibold text-slate-800">تصدير جميع بيانات النظام</h2>

@@ -31,12 +31,14 @@ export default function PledgeForm({
   nextContractNumber,
   shopName,
   shopCommercialRegistration,
+  boxOptions,
 }: {
   customers: Customer[];
   preselectedCustomerId?: number;
   nextContractNumber: string;
   shopName: string;
   shopCommercialRegistration: string | null;
+  boxOptions: string[];
 }) {
   const preselected = preselectedCustomerId
     ? customers.find((c) => c.id === preselectedCustomerId)
@@ -229,7 +231,21 @@ export default function PledgeForm({
           </div>
           <Field label="الوزن (جرام)" name="weight_grams" type="number" step="0.01" />
           <Field label="الرقم المرجعي" name="reference_number" />
-          <Field label="رقم الصندوق" name="box_number" />
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">رقم الصندوق</label>
+            <select
+              name="box_number"
+              defaultValue=""
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
+            >
+              <option value="">- اختر -</option>
+              {boxOptions.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
+          </div>
           <Field label="العائلة / المجموعة" name="family_group" />
           <Field
             label="مبلغ الشراء (ريال)"

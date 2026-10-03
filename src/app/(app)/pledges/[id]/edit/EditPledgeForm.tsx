@@ -13,7 +13,15 @@ function dateStr(value: string | Date): string {
   return typeof value === "string" ? value.slice(0, 10) : value.toISOString().slice(0, 10);
 }
 
-export default function EditPledgeForm({ pledge, customer }: { pledge: Pledge; customer: Customer }) {
+export default function EditPledgeForm({
+  pledge,
+  customer,
+  boxOptions,
+}: {
+  pledge: Pledge;
+  customer: Customer;
+  boxOptions: string[];
+}) {
   const [state, formAction, pending] = useActionState(
     async (_prev: { error?: string }, formData: FormData) => updatePledgeFormAction(formData),
     initialState
@@ -76,7 +84,21 @@ export default function EditPledgeForm({ pledge, customer }: { pledge: Pledge; c
           </div>
           <Field label="الوزن (جرام)" name="weight_grams" type="number" step="0.01" defaultValue={pledge.weight_grams ?? ""} />
           <Field label="الرقم المرجعي" name="reference_number" defaultValue={pledge.reference_number ?? ""} />
-          <Field label="رقم الصندوق" name="box_number" defaultValue={pledge.box_number ?? ""} />
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">رقم الصندوق</label>
+            <select
+              name="box_number"
+              defaultValue={pledge.box_number ?? ""}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
+            >
+              <option value="">- اختر -</option>
+              {boxOptions.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
+          </div>
           <Field label="العائلة / المجموعة" name="family_group" defaultValue={pledge.family_group ?? ""} />
           <Field
             label="مبلغ الشراء (ريال)"

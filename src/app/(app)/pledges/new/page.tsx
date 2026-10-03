@@ -1,13 +1,14 @@
-import { getNextContractNumber, getShopProfile, listCustomers } from "@/lib/actions";
+import { getNextContractNumber, getShopProfile, listBoxOptions, listCustomers } from "@/lib/actions";
 import PledgeForm from "./PledgeForm";
 
 export default async function NewPledgePage({ searchParams }: PageProps<"/pledges/new">) {
   const params = await searchParams;
   const customerIdParam = typeof params.customer_id === "string" ? Number(params.customer_id) : undefined;
-  const [customers, nextContractNumber, shopProfile] = await Promise.all([
+  const [customers, nextContractNumber, shopProfile, boxOptions] = await Promise.all([
     listCustomers(),
     getNextContractNumber(),
     getShopProfile(),
+    listBoxOptions(),
   ]);
 
   return (
@@ -19,6 +20,7 @@ export default async function NewPledgePage({ searchParams }: PageProps<"/pledge
         nextContractNumber={nextContractNumber}
         shopName={shopProfile.name}
         shopCommercialRegistration={shopProfile.commercial_registration}
+        boxOptions={boxOptions.map((o) => o.label)}
       />
     </div>
   );
