@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getCustomer, getPledge, listBoxOptions } from "@/lib/actions";
 import EditPledgeForm from "./EditPledgeForm";
+import BackButton from "@/components/BackButton";
 
 export default async function EditPledgePage({ params }: PageProps<"/pledges/[id]/edit">) {
   const { id } = await params;
@@ -21,6 +22,7 @@ export default async function EditPledgePage({ params }: PageProps<"/pledges/[id
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
+      <BackButton />
       <div>
         <h1 className="text-xl font-bold text-slate-800">تعديل فاتورة {pledge.contract_number}</h1>
         <p className="text-sm text-slate-600">{pledge.customer_full_name}</p>

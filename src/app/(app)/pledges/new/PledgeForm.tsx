@@ -7,6 +7,7 @@ import { formatSAR, ITEM_TYPES } from "@/lib/pledge-calc";
 import { blockNumberLetterKeys, digitsOnlyChange } from "@/lib/form-input";
 import SignaturePad from "@/components/SignaturePad";
 import ImageAttachField from "@/components/ImageAttachField";
+import BackButton from "@/components/BackButton";
 
 const initialState: { error?: string } = {};
 
@@ -47,6 +48,7 @@ export default function PledgeForm({
   const [mode, setMode] = useState<"existing" | "new">("existing");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | undefined>(preselected);
   const [searchQuery, setSearchQuery] = useState("");
+  const [touched, setTouched] = useState(false);
 
   // Tracked (in addition to being normal form fields) so the sale
   // declaration below can show the actual values as the owner types them.
@@ -73,7 +75,9 @@ export default function PledgeForm({
   const declarationPrice = principalAmount ? formatSAR(Number(principalAmount)) : "......";
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form action={formAction} onChange={() => setTouched(true)} className="space-y-6">
+      <BackButton isDirty={touched} />
+
       <section className="rounded-xl border border-slate-200 bg-white p-5">
         <h2 className="mb-4 font-semibold text-slate-800">بيانات العميل</h2>
 

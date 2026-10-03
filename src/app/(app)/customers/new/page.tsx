@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { createCustomerFormAction } from "@/lib/actions";
 import { digitsOnlyChange } from "@/lib/form-input";
+import BackButton from "@/components/BackButton";
 
 const initialState: { error?: string } = {};
 
@@ -14,6 +15,7 @@ export default function NewCustomerPage() {
 
   return (
     <div className="max-w-xl">
+      <BackButton className="mb-3" />
       <h1 className="mb-6 text-xl font-bold text-slate-800">عميل جديد</h1>
       <form action={formAction} className="space-y-4 rounded-xl border border-slate-200 bg-white p-6">
         <Field label="الاسم الكامل" name="full_name" required />

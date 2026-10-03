@@ -5,6 +5,7 @@ import { redeemPledgeFormAction } from "@/lib/actions";
 import { blockNumberLetterKeys, stripNonDigits } from "@/lib/form-input";
 import SignaturePad from "@/components/SignaturePad";
 import ImageAttachField from "@/components/ImageAttachField";
+import BackButton from "@/components/BackButton";
 
 const initialState: { error?: string } = {};
 
@@ -31,6 +32,7 @@ export default function RedeemForm({
   const [receiverName, setReceiverName] = useState("");
   const [receiverNationalId, setReceiverNationalId] = useState("");
   const [settlementAmount, setSettlementAmount] = useState(String(suggestedAmount));
+  const [touched, setTouched] = useState(false);
 
   const amountLabel = new Intl.NumberFormat("ar-SA-u-nu-latn", {
     style: "currency",
@@ -47,7 +49,9 @@ export default function RedeemForm({
   const declarantNationalId = isOtherReceiver ? receiverNationalId || "......................" : customerNationalId;
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form action={formAction} onChange={() => setTouched(true)} className="space-y-6">
+      <BackButton isDirty={touched} />
+
       <input type="hidden" name="pledge_id" value={pledgeId} />
       <input type="hidden" name="is_other_receiver" value={isOtherReceiver ? "true" : "false"} />
 

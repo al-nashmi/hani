@@ -3,6 +3,7 @@ import { getPledge, getShopProfile } from "@/lib/actions";
 import { formatDate, formatSAR } from "@/lib/pledge-calc";
 import PrintButton from "../PrintButton";
 import ShopStamp from "@/components/ShopStamp";
+import BackButton from "@/components/BackButton";
 
 export default async function PledgeReceiptPage({ params }: PageProps<"/pledges/[id]/receipt">) {
   const { id } = await params;
@@ -17,6 +18,7 @@ export default async function PledgeReceiptPage({ params }: PageProps<"/pledges/
 
   return (
     <div className="mx-auto max-w-2xl">
+      <BackButton className="mb-3" />
       <PrintButton hint='اضغط طباعة، ثم اختر "حفظ كـ PDF" (Save as PDF) من قائمة الطابعة لتنزيل السند.' />
 
       <style>{`

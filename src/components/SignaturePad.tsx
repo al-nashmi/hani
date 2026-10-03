@@ -41,6 +41,9 @@ export default function SignaturePad({ name, label = "توقيع العميل" }
     const canvas = canvasRef.current;
     if (!canvas || !inputRef.current) return;
     inputRef.current.value = canvas.toDataURL("image/png");
+    // Dispatched as a real event (not just set imperatively) so a parent form's
+    // onChange — used to track unsaved changes for the back-button confirm — sees it.
+    inputRef.current.dispatchEvent(new Event("input", { bubbles: true }));
   }
 
   function handlePointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
@@ -83,7 +86,10 @@ export default function SignaturePad({ name, label = "توقيع العميل" }
     ctx.restore();
     ctx.scale(ratio, ratio);
     setHasSignature(false);
-    if (inputRef.current) inputRef.current.value = "";
+    if (inputRef.current) {
+      inputRef.current.value = "";
+      inputRef.current.dispatchEvent(new Event("input", { bubbles: true }));
+    }
   }
 
   return (

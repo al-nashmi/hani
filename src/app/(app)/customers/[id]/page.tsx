@@ -4,6 +4,7 @@ import { getCustomer, listPledgesForCustomer } from "@/lib/actions";
 import { computePledge, formatDate, formatSAR, todayUtc } from "@/lib/pledge-calc";
 import StatusBadge from "@/components/StatusBadge";
 import CardField from "@/components/CardField";
+import BackButton from "@/components/BackButton";
 
 export default async function CustomerDetailPage({ params }: PageProps<"/customers/[id]">) {
   const { id } = await params;
@@ -15,6 +16,7 @@ export default async function CustomerDetailPage({ params }: PageProps<"/custome
 
   return (
     <div className="space-y-6">
+      <BackButton />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-bold text-slate-800">{customer.full_name}</h1>
         <div className="flex flex-wrap items-center gap-2">

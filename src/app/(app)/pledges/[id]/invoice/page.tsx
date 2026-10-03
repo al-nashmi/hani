@@ -3,6 +3,7 @@ import { getPledge, getShopProfile } from "@/lib/actions";
 import { computePledge, formatDate, formatSAR, todayUtc } from "@/lib/pledge-calc";
 import PrintButton from "../PrintButton";
 import ShopStamp from "@/components/ShopStamp";
+import BackButton from "@/components/BackButton";
 
 export default async function PledgeInvoicePage({ params }: PageProps<"/pledges/[id]/invoice">) {
   const { id } = await params;
@@ -13,6 +14,7 @@ export default async function PledgeInvoicePage({ params }: PageProps<"/pledges/
 
   return (
     <div className="mx-auto max-w-2xl">
+      <BackButton className="mb-3" />
       <PrintButton />
 
       <style>{`

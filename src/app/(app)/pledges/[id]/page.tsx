@@ -8,6 +8,7 @@ import ContactLogTable from "./ContactLogTable";
 import ForfeitButton from "./ForfeitButton";
 import DeletePledgeButton from "./DeletePledgeButton";
 import RestorePledgeButton from "./RestorePledgeButton";
+import BackButton from "@/components/BackButton";
 
 const CONTACT_METHOD_LABELS: Record<string, string> = {
   phone: "مكالمة هاتفية",
@@ -32,6 +33,7 @@ export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[
 
   return (
     <div className="max-w-3xl space-y-6">
+      <BackButton />
       {isDeleted && (
         <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
           <p className="text-sm text-red-800">
