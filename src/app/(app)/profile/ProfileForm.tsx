@@ -5,6 +5,7 @@ import { updateShopProfileFormAction } from "@/lib/actions";
 import type { ShopProfile } from "@/lib/db";
 import { digitsOnlyChange } from "@/lib/form-input";
 import ImageAttachField from "@/components/ImageAttachField";
+import SignaturePad from "@/components/SignaturePad";
 
 const initialState: { error?: string } = {};
 
@@ -37,7 +38,7 @@ export default function ProfileForm({ profile }: { profile: ShopProfile }) {
         />
       </div>
 
-      <ImageAttachField name="signature" label="توقيع المحل" defaultValue={profile.signature} />
+      <SignaturePad name="signature" label="توقيع المحل" defaultValue={profile.signature} required={false} />
       <ImageAttachField name="stamp" label="ختم المحل" defaultValue={profile.stamp} />
 
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}

@@ -7,12 +7,22 @@ import { useEffect, useRef, useState } from "react";
  * work through one code path (desktop + mobile). Writes the signature as a
  * PNG data URL into a hidden form input on every stroke.
  */
-export default function SignaturePad({ name, label = "توقيع العميل" }: { name: string; label?: string }) {
+export default function SignaturePad({
+  name,
+  label = "توقيع العميل",
+  defaultValue = null,
+  required = true,
+}: {
+  name: string;
+  label?: string;
+  defaultValue?: string | null;
+  required?: boolean;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const drawingRef = useRef(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
-  const [hasSignature, setHasSignature] = useState(false);
+  const [hasSignature, setHasSignature] = useState(Boolean(defaultValue));
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -30,6 +40,14 @@ export default function SignaturePad({ name, label = "توقيع العميل" }
     ctx.strokeStyle = "#0b0b0b";
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, rect.width, rect.height);
+
+    if (defaultValue) {
+      const img = new window.Image();
+      img.onload = () => ctx.drawImage(img, 0, 0, rect.width, rect.height);
+      img.src = defaultValue;
+    }
+    // Only ever preload the saved signature once, at mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function getPoint(e: React.PointerEvent<HTMLCanvasElement>) {
@@ -96,7 +114,7 @@ export default function SignaturePad({ name, label = "توقيع العميل" }
     <div>
       <div className="flex items-center justify-between mb-1">
         <label className="block text-sm font-medium text-slate-700">
-          {label} <span className="text-red-500">*</span>
+          {label} {required && <span className="text-red-500">*</span>}
         </label>
         <button
           type="button"
@@ -118,7 +136,7 @@ export default function SignaturePad({ name, label = "توقيع العميل" }
       <p className="mt-1 text-xs text-slate-500">
         {hasSignature ? "تم التوقيع" : "وقّع بالفأرة أو إصبعك داخل المربع أعلاه"}
       </p>
-      <input ref={inputRef} type="hidden" name={name} />
+      <input ref={inputRef} type="hidden" name={name} defaultValue={defaultValue ?? ""} />
     </div>
   );
 }
