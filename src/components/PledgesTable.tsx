@@ -355,7 +355,13 @@ export default function PledgesTable({
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.pledge.id} className="border-t border-slate-100 hover:bg-slate-50">
+              <tr
+                key={row.pledge.id}
+                className={`border-t border-slate-100 hover:bg-slate-100 ${
+                  row.pledge.lead_sealed ? "bg-slate-200" : ""
+                }`}
+                title={row.pledge.lead_sealed ? "مقفل برصاص" : undefined}
+              >
                 {orderedColumns.map((col) => {
                   const hiddenClass = forcedVisible.has(col.key) ? "" : TIER_HIDDEN_CLASS[col.tier];
                   return (

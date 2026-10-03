@@ -78,6 +78,7 @@ export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[
           <Info label="الرقم المرجعي" value={pledge.reference_number || "-"} />
           <Info label="رقم الصندوق" value={pledge.box_number || "-"} />
           <Info label="العائلة / المجموعة" value={pledge.family_group || "-"} />
+          <Info label="مقفل برصاص" value={pledge.lead_sealed ? "نعم" : "لا"} />
         </div>
         <div className="mt-4">
           <p className="text-xs text-slate-500">الوصف</p>

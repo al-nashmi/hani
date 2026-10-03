@@ -52,6 +52,7 @@ export type Pledge = {
   reference_number: string | null;
   box_number: string | null;
   family_group: string | null;
+  lead_sealed: boolean;
   principal_amount: string;
   monthly_rate_percent: string;
   period_days: number;
