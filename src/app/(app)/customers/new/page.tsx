@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { createCustomerFormAction } from "@/lib/actions";
+import { digitsOnlyChange } from "@/lib/form-input";
 
 const initialState: { error?: string } = {};
 
@@ -16,9 +17,9 @@ export default function NewCustomerPage() {
       <h1 className="mb-6 text-xl font-bold text-slate-800">عميل جديد</h1>
       <form action={formAction} className="space-y-4 rounded-xl border border-slate-200 bg-white p-6">
         <Field label="الاسم الكامل" name="full_name" required />
-        <Field label="رقم الهوية" name="national_id" required />
+        <Field label="رقم الهوية" name="national_id" required digitsOnly />
         <Field label="الجنسية" name="nationality" />
-        <Field label="رقم الجوال" name="phone" />
+        <Field label="رقم الجوال" name="phone" digitsOnly />
         <Field label="البريد الإلكتروني" name="email" type="email" />
         <div className="grid grid-cols-2 gap-4">
           <Field label="تاريخ إصدار الهوية" name="id_issue_date" type="date" />
@@ -44,11 +45,13 @@ function Field({
   name,
   type = "text",
   required = false,
+  digitsOnly = false,
 }: {
   label: string;
   name: string;
   type?: string;
   required?: boolean;
+  digitsOnly?: boolean;
 }) {
   return (
     <div>
@@ -60,6 +63,8 @@ function Field({
         name={name}
         type={type}
         required={required}
+        onChange={digitsOnly ? digitsOnlyChange : undefined}
+        inputMode={digitsOnly ? "numeric" : undefined}
         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
       />
     </div>

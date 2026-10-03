@@ -4,6 +4,7 @@ import { useActionState, useMemo, useState } from "react";
 import { createPledgeFormAction } from "@/lib/actions";
 import type { Customer } from "@/lib/db";
 import { formatSAR, ITEM_TYPES } from "@/lib/pledge-calc";
+import { blockNumberLetterKeys, digitsOnlyChange } from "@/lib/form-input";
 import SignaturePad from "@/components/SignaturePad";
 import ImageAttachField from "@/components/ImageAttachField";
 
@@ -170,11 +171,12 @@ export default function PledgeForm({
               label="رقم الهوية"
               name="new_national_id"
               required
+              digitsOnly
               value={newNationalId}
               onChange={(e) => setNewNationalId(e.target.value)}
             />
             <Field label="الجنسية" name="new_nationality" />
-            <Field label="رقم الجوال" name="new_phone" />
+            <Field label="رقم الجوال" name="new_phone" digitsOnly />
             <Field label="البريد الإلكتروني" name="new_email" type="email" />
             <Field label="تاريخ إصدار الهوية" name="new_id_issue_date" type="date" />
             <Field label="مصدر الهوية" name="new_id_issue_place" />
@@ -324,6 +326,7 @@ function Field({
   value,
   onChange,
   readOnly = false,
+  digitsOnly = false,
 }: {
   label: string;
   name: string;
@@ -334,6 +337,7 @@ function Field({
   value?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   readOnly?: boolean;
+  digitsOnly?: boolean;
 }) {
   return (
     <div>
@@ -348,7 +352,16 @@ function Field({
         step={step}
         defaultValue={value === undefined ? defaultValue : undefined}
         value={value}
-        onChange={onChange}
+        onChange={
+          digitsOnly
+            ? (e) => {
+                digitsOnlyChange(e);
+                onChange?.(e);
+              }
+            : onChange
+        }
+        onKeyDown={type === "number" ? blockNumberLetterKeys : undefined}
+        inputMode={digitsOnly ? "numeric" : undefined}
         readOnly={readOnly}
         tabIndex={readOnly ? -1 : undefined}
         className={`w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600 ${

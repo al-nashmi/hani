@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { updateCustomerFormAction } from "@/lib/actions";
 import type { Customer } from "@/lib/db";
 import { toISODateString } from "@/lib/pledge-calc";
+import { digitsOnlyChange } from "@/lib/form-input";
 
 const initialState: { error?: string } = {};
 
@@ -17,9 +18,9 @@ export default function EditCustomerForm({ customer }: { customer: Customer }) {
     <form action={formAction} className="space-y-4 rounded-xl border border-slate-200 bg-white p-6">
       <input type="hidden" name="customer_id" value={customer.id} />
       <Field label="الاسم الكامل" name="full_name" required defaultValue={customer.full_name} />
-      <Field label="رقم الهوية" name="national_id" required defaultValue={customer.national_id ?? ""} />
+      <Field label="رقم الهوية" name="national_id" required digitsOnly defaultValue={customer.national_id ?? ""} />
       <Field label="الجنسية" name="nationality" defaultValue={customer.nationality ?? ""} />
-      <Field label="رقم الجوال" name="phone" defaultValue={customer.phone ?? ""} />
+      <Field label="رقم الجوال" name="phone" digitsOnly defaultValue={customer.phone ?? ""} />
       <Field label="البريد الإلكتروني" name="email" type="email" defaultValue={customer.email ?? ""} />
       <div className="grid grid-cols-2 gap-4">
         <Field
@@ -50,12 +51,14 @@ function Field({
   type = "text",
   required = false,
   defaultValue,
+  digitsOnly = false,
 }: {
   label: string;
   name: string;
   type?: string;
   required?: boolean;
   defaultValue?: string;
+  digitsOnly?: boolean;
 }) {
   return (
     <div>
@@ -68,6 +71,8 @@ function Field({
         type={type}
         required={required}
         defaultValue={defaultValue}
+        onChange={digitsOnly ? digitsOnlyChange : undefined}
+        inputMode={digitsOnly ? "numeric" : undefined}
         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
       />
     </div>

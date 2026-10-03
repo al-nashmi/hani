@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { updatePledgeFormAction } from "@/lib/actions";
 import type { Customer, Pledge } from "@/lib/db";
 import { ITEM_TYPES, toISODateString } from "@/lib/pledge-calc";
+import { blockNumberLetterKeys, digitsOnlyChange } from "@/lib/form-input";
 import ImageAttachField from "@/components/ImageAttachField";
 
 const initialState: { error?: string } = {};
@@ -26,9 +27,9 @@ export default function EditPledgeForm({ pledge, customer }: { pledge: Pledge; c
         <h2 className="mb-4 font-semibold text-slate-800">بيانات العميل</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="الاسم الكامل" name="full_name" required defaultValue={customer.full_name} />
-          <Field label="رقم الهوية" name="national_id" required defaultValue={customer.national_id ?? ""} />
+          <Field label="رقم الهوية" name="national_id" required digitsOnly defaultValue={customer.national_id ?? ""} />
           <Field label="الجنسية" name="nationality" defaultValue={customer.nationality ?? ""} />
-          <Field label="رقم الجوال" name="phone" defaultValue={customer.phone ?? ""} />
+          <Field label="رقم الجوال" name="phone" digitsOnly defaultValue={customer.phone ?? ""} />
           <Field label="البريد الإلكتروني" name="email" type="email" defaultValue={customer.email ?? ""} />
           <Field
             label="تاريخ إصدار الهوية"
@@ -131,6 +132,7 @@ function Field({
   required = false,
   step,
   defaultValue,
+  digitsOnly = false,
 }: {
   label: string;
   name: string;
@@ -138,6 +140,7 @@ function Field({
   required?: boolean;
   step?: string;
   defaultValue?: string;
+  digitsOnly?: boolean;
 }) {
   return (
     <div>
@@ -151,6 +154,9 @@ function Field({
         required={required}
         step={step}
         defaultValue={defaultValue}
+        onChange={digitsOnly ? digitsOnlyChange : undefined}
+        onKeyDown={type === "number" ? blockNumberLetterKeys : undefined}
+        inputMode={digitsOnly ? "numeric" : undefined}
         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
       />
     </div>

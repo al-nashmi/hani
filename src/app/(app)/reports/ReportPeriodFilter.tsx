@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ITEM_TYPES } from "@/lib/pledge-calc";
+import { blockNumberLetterKeys } from "@/lib/form-input";
 
 const PERIODS = [
   { value: "all", label: "الكل" },
@@ -82,6 +83,7 @@ export default function ReportPeriodFilter({
             defaultValue={initialYear}
             min={2000}
             max={2100}
+            onKeyDown={blockNumberLetterKeys}
             className="w-28 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
           />
         </div>

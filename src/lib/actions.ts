@@ -13,6 +13,7 @@ import {
 } from "./db";
 import { checkPassword, createSessionToken, invalidateAllSessions, sessionCookieOptions, SESSION_COOKIE } from "./auth";
 import { computePledge, formatDate, normalizeSaudiPhone, todayUtc } from "./pledge-calc";
+import { stripNonDigits } from "./form-input";
 import { runScanWithLog } from "./haraj-scraper";
 import type { WatchLeadKind, WatchLeadStatus, WatchLeadWithImages } from "./db";
 
@@ -110,7 +111,7 @@ export async function createCustomer(input: CreateCustomerInput): Promise<Custom
 
 export async function createCustomerFormAction(formData: FormData): Promise<{ error?: string }> {
   const full_name = String(formData.get("full_name") ?? "").trim();
-  const national_id = String(formData.get("national_id") ?? "").trim();
+  const national_id = stripNonDigits(String(formData.get("national_id") ?? ""));
   if (!full_name || !national_id) {
     return { error: "الاسم ورقم الهوية مطلوبان" };
   }
@@ -128,7 +129,7 @@ export async function createCustomerFormAction(formData: FormData): Promise<{ er
       full_name,
       national_id,
       nationality: String(formData.get("nationality") ?? "").trim() || undefined,
-      phone: String(formData.get("phone") ?? "").trim() || undefined,
+      phone: stripNonDigits(String(formData.get("phone") ?? "")) || undefined,
       email: String(formData.get("email") ?? "").trim() || undefined,
       id_issue_date: id_issue_date || undefined,
       id_issue_place: String(formData.get("id_issue_place") ?? "").trim() || undefined,
@@ -148,7 +149,7 @@ export async function updateCustomerFormAction(formData: FormData): Promise<{ er
     return { error: "بيانات غير صحيحة" };
   }
   const full_name = String(formData.get("full_name") ?? "").trim();
-  const national_id = String(formData.get("national_id") ?? "").trim();
+  const national_id = stripNonDigits(String(formData.get("national_id") ?? ""));
   if (!full_name || !national_id) {
     return { error: "الاسم ورقم الهوية مطلوبان" };
   }
@@ -161,7 +162,7 @@ export async function updateCustomerFormAction(formData: FormData): Promise<{ er
     return { error: "تاريخ إصدار الهوية غير صحيح" };
   }
   const nationality = String(formData.get("nationality") ?? "").trim();
-  const phone = String(formData.get("phone") ?? "").trim();
+  const phone = stripNonDigits(String(formData.get("phone") ?? ""));
   const email = String(formData.get("email") ?? "").trim();
   const id_issue_place = String(formData.get("id_issue_place") ?? "").trim();
 
@@ -410,7 +411,7 @@ export async function createPledgeFormAction(formData: FormData): Promise<{ erro
 
   if (customerMode === "new") {
     const full_name = String(formData.get("new_full_name") ?? "").trim();
-    const national_id = String(formData.get("new_national_id") ?? "").trim();
+    const national_id = stripNonDigits(String(formData.get("new_national_id") ?? ""));
     if (!full_name || !national_id) {
       return { error: "الرجاء تعبئة اسم ورقم هوية العميل الجديد" };
     }
@@ -427,7 +428,7 @@ export async function createPledgeFormAction(formData: FormData): Promise<{ erro
           full_name,
           national_id,
           nationality: String(formData.get("new_nationality") ?? "").trim() || undefined,
-          phone: String(formData.get("new_phone") ?? "").trim() || undefined,
+          phone: stripNonDigits(String(formData.get("new_phone") ?? "")) || undefined,
           email: String(formData.get("new_email") ?? "").trim() || undefined,
           id_issue_date: new_id_issue_date || undefined,
           id_issue_place: String(formData.get("new_id_issue_place") ?? "").trim() || undefined,
@@ -530,7 +531,7 @@ export async function redeemPledgeFormAction(formData: FormData): Promise<{ erro
   const receipt_signature = String(formData.get("receipt_signature") ?? "").trim();
   const isOtherReceiver = String(formData.get("is_other_receiver") ?? "") === "true";
   const receiver_full_name = String(formData.get("receiver_full_name") ?? "").trim();
-  const receiver_national_id = String(formData.get("receiver_national_id") ?? "").trim();
+  const receiver_national_id = stripNonDigits(String(formData.get("receiver_national_id") ?? ""));
   const receiver_id_photo = String(formData.get("receiver_id_photo") ?? "").trim();
 
   if (!pledgeId) {
@@ -612,9 +613,9 @@ export async function updatePledgeFormAction(formData: FormData): Promise<{ erro
   const item_photo = String(formData.get("item_photo") ?? "").trim();
 
   const full_name = String(formData.get("full_name") ?? "").trim();
-  const national_id = String(formData.get("national_id") ?? "").trim();
+  const national_id = stripNonDigits(String(formData.get("national_id") ?? ""));
   const nationality = String(formData.get("nationality") ?? "").trim();
-  const phone = String(formData.get("phone") ?? "").trim();
+  const phone = stripNonDigits(String(formData.get("phone") ?? ""));
   const email = String(formData.get("email") ?? "").trim();
   const id_issue_date = String(formData.get("id_issue_date") ?? "").trim();
   const id_issue_place = String(formData.get("id_issue_place") ?? "").trim();
@@ -778,8 +779,8 @@ export async function getShopProfile(): Promise<ShopProfile> {
 
 export async function updateShopProfileFormAction(formData: FormData): Promise<{ error?: string }> {
   const name = String(formData.get("name") ?? "").trim();
-  const commercial_registration = String(formData.get("commercial_registration") ?? "").trim();
-  const phone = String(formData.get("phone") ?? "").trim();
+  const commercial_registration = stripNonDigits(String(formData.get("commercial_registration") ?? ""));
+  const phone = stripNonDigits(String(formData.get("phone") ?? ""));
   const address = String(formData.get("address") ?? "").trim();
   const signature = String(formData.get("signature") ?? "").trim();
   const stamp = String(formData.get("stamp") ?? "").trim();

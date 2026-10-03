@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { redeemPledgeFormAction } from "@/lib/actions";
+import { blockNumberLetterKeys, stripNonDigits } from "@/lib/form-input";
 import SignaturePad from "@/components/SignaturePad";
 import ImageAttachField from "@/components/ImageAttachField";
 
@@ -83,7 +84,8 @@ export default function RedeemForm({
                 name="receiver_national_id"
                 required={isOtherReceiver}
                 value={receiverNationalId}
-                onChange={(e) => setReceiverNationalId(e.target.value)}
+                onChange={(e) => setReceiverNationalId(stripNonDigits(e.target.value))}
+                inputMode="numeric"
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
               />
             </div>
@@ -108,6 +110,7 @@ export default function RedeemForm({
           required
           value={settlementAmount}
           onChange={(e) => setSettlementAmount(e.target.value)}
+          onKeyDown={blockNumberLetterKeys}
           className="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
         />
         <p className="mt-1 text-xs text-slate-500">
