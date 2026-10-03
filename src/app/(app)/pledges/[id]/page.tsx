@@ -6,6 +6,8 @@ import StatusBadge from "@/components/StatusBadge";
 import ContactLogForm from "./ContactLogForm";
 import ContactLogTable from "./ContactLogTable";
 import ForfeitButton from "./ForfeitButton";
+import DeletePledgeButton from "./DeletePledgeButton";
+import RestorePledgeButton from "./RestorePledgeButton";
 
 const CONTACT_METHOD_LABELS: Record<string, string> = {
   phone: "مكالمة هاتفية",
@@ -26,9 +28,19 @@ export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[
   ]);
   const computed = computePledge(pledge, todayUtc());
   const normalizedPhone = pledge.customer_phone ? normalizeSaudiPhone(pledge.customer_phone) : null;
+  const isDeleted = Boolean(pledge.deleted_at);
 
   return (
     <div className="max-w-3xl space-y-6">
+      {isDeleted && (
+        <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
+          <p className="text-sm text-red-800">
+            هذه الفاتورة محذوفة ولا تظهر في القوائم العادية، لكنها محفوظة بالنظام.
+          </p>
+          <RestorePledgeButton pledgeId={pledge.id} />
+        </section>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-slate-800">فاتورة شراء رقم {pledge.contract_number}</h1>
@@ -36,7 +48,7 @@ export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[
             {pledge.customer_full_name} - {pledge.customer_national_id}
           </Link>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={computed.effectiveStatus} />
           <Link
             href={`/pledges/${pledge.id}/invoice`}
@@ -44,6 +56,17 @@ export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[
           >
             طباعة / تحميل PDF
           </Link>
+          {!isDeleted && (
+            <>
+              <Link
+                href={`/pledges/${pledge.id}/edit`}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+              >
+                تعديل الفاتورة
+              </Link>
+              <DeletePledgeButton pledgeId={pledge.id} />
+            </>
+          )}
         </div>
       </div>
 
@@ -118,7 +141,7 @@ export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[
         </section>
       )}
 
-      {computed.isOverdue && pledge.status === "active" && (
+      {!isDeleted && computed.isOverdue && pledge.status === "active" && (
         <section className="rounded-xl border border-orange-200 bg-orange-50 p-5">
           <p className="text-sm text-orange-900">
             تجاوزت الفاتورة مدة الاسترداد ({pledge.period_days} يوم) ولم يقم العميل باسترداد القطعة بعد. القطعة لا
@@ -131,7 +154,7 @@ export default async function PledgeDetailPage({ params }: PageProps<"/pledges/[
         </section>
       )}
 
-      {pledge.status === "active" && (
+      {!isDeleted && pledge.status === "active" && (
         <Link
           href={`/pledges/${pledge.id}/redeem`}
           className="inline-block rounded-lg bg-emerald-700 px-6 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800"

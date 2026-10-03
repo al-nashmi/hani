@@ -195,14 +195,15 @@ export async function listPledges(filter?: {
     SELECT p.*, c.full_name AS customer_full_name, c.national_id AS customer_national_id, c.phone AS customer_phone
     FROM pledges p
     JOIN customers c ON c.id = p.customer_id
-    WHERE (${q}::text IS NULL OR c.full_name ILIKE ${q} OR c.national_id ILIKE ${q} OR p.contract_number ILIKE ${q})
+    WHERE p.deleted_at IS NULL
+      AND (${q}::text IS NULL OR c.full_name ILIKE ${q} OR c.national_id ILIKE ${q} OR p.contract_number ILIKE ${q})
     ORDER BY p.created_at DESC
     LIMIT 20000
   `) as PledgeWithCustomer[];
   return rows;
 }
 
-export type PledgeStatusFilter = "all" | "active" | "due_soon" | "overdue" | "forfeited" | "redeemed";
+export type PledgeStatusFilter = "all" | "active" | "due_soon" | "overdue" | "forfeited" | "redeemed" | "deleted";
 export type PledgeSortKey =
   | "contract_number"
   | "customer_full_name"
@@ -230,7 +231,8 @@ const PLEDGE_SORT_EXPR: Record<PledgeSortKey, string> = {
 
 // Mirrors computePledge()'s effectiveStatus priority (redeemed/forfeited are stored;
 // overdue/due_soon/active are date-derived from an 'active' row) in pledge-calc.ts.
-const PLEDGE_STATUS_WHERE: Record<Exclude<PledgeStatusFilter, "all">, string> = {
+// "deleted" isn't here — it's a p.deleted_at condition, not a p.status one, handled separately.
+const PLEDGE_STATUS_WHERE: Record<Exclude<PledgeStatusFilter, "all" | "deleted">, string> = {
   redeemed: "p.status = 'redeemed'",
   forfeited: "p.status = 'forfeited'",
   overdue: "p.status = 'active' AND (p.start_date::date + (p.period_days || ' days')::interval) <= CURRENT_DATE",
@@ -262,10 +264,14 @@ export async function listPledgesPage(opts: {
 }): Promise<PledgesPageResult> {
   const search = opts.search?.trim();
   const q = search ? `%${search}%` : null;
+  // "deleted" shows only soft-deleted rows; every other filter (including "all") hides them —
+  // the dedicated filter tab is how staff find/restore a deleted invoice.
   const statusClause =
-    opts.status && opts.status !== "all" && Object.hasOwn(PLEDGE_STATUS_WHERE, opts.status)
-      ? PLEDGE_STATUS_WHERE[opts.status]
-      : null;
+    opts.status === "deleted"
+      ? "p.deleted_at IS NOT NULL"
+      : opts.status && opts.status !== "all" && Object.hasOwn(PLEDGE_STATUS_WHERE, opts.status)
+        ? `(${PLEDGE_STATUS_WHERE[opts.status]}) AND p.deleted_at IS NULL`
+        : "p.deleted_at IS NULL";
   const orderExpr = PLEDGE_SORT_EXPR[opts.sortKey ?? "start_date"] ?? PLEDGE_SORT_EXPR.start_date;
   const dir = opts.sortDir === "asc" ? "ASC" : "DESC";
   const pageSize = opts.pageSize && opts.pageSize > 0 ? Math.min(opts.pageSize, 200) : 50;
@@ -278,7 +284,7 @@ export async function listPledgesPage(opts: {
       FROM pledges p
       JOIN customers c ON c.id = p.customer_id
       WHERE (${q}::text IS NULL OR c.full_name ILIKE ${q} OR c.national_id ILIKE ${q} OR p.contract_number ILIKE ${q})
-        ${sql.unsafe(statusClause ? `AND ${statusClause}` : "")}
+        AND ${sql.unsafe(statusClause)}
       ORDER BY ${sql.unsafe(orderExpr)} ${sql.unsafe(dir)}
       LIMIT ${pageSize} OFFSET ${offset}
     `,
@@ -287,7 +293,7 @@ export async function listPledgesPage(opts: {
       FROM pledges p
       JOIN customers c ON c.id = p.customer_id
       WHERE (${q}::text IS NULL OR c.full_name ILIKE ${q} OR c.national_id ILIKE ${q} OR p.contract_number ILIKE ${q})
-        ${sql.unsafe(statusClause ? `AND ${statusClause}` : "")}
+        AND ${sql.unsafe(statusClause)}
     `,
     sql`
       SELECT
@@ -296,7 +302,8 @@ export async function listPledgesPage(opts: {
         COALESCE(SUM(${sql.unsafe(PLEDGE_SORT_EXPR.total_due)}) FILTER (WHERE p.status = 'active'), 0) AS due_outstanding
       FROM pledges p
       JOIN customers c ON c.id = p.customer_id
-      WHERE (${q}::text IS NULL OR c.full_name ILIKE ${q} OR c.national_id ILIKE ${q} OR p.contract_number ILIKE ${q})
+      WHERE p.deleted_at IS NULL
+        AND (${q}::text IS NULL OR c.full_name ILIKE ${q} OR c.national_id ILIKE ${q} OR p.contract_number ILIKE ${q})
     `,
   ]);
 
@@ -331,7 +338,7 @@ export async function listReminders(): Promise<ReminderItem[]> {
     SELECT p.*, c.full_name AS customer_full_name, c.national_id AS customer_national_id, c.phone AS customer_phone
     FROM pledges p
     JOIN customers c ON c.id = p.customer_id
-    WHERE p.status = 'active'
+    WHERE p.status = 'active' AND p.deleted_at IS NULL
       AND (p.start_date::date + (p.period_days || ' days')::interval)
         BETWEEN CURRENT_DATE AND (CURRENT_DATE + INTERVAL '15 days')
     ORDER BY (p.start_date::date + (p.period_days || ' days')::interval) ASC
@@ -381,7 +388,7 @@ export async function listPledgesForCustomer(customerId: number): Promise<Pledge
   const safeId = toId(customerId);
   if (safeId === null) return [];
   return (await sql`
-    SELECT * FROM pledges WHERE customer_id = ${safeId} ORDER BY created_at DESC
+    SELECT * FROM pledges WHERE customer_id = ${safeId} AND deleted_at IS NULL ORDER BY created_at DESC
   `) as Pledge[];
 }
 
@@ -548,7 +555,7 @@ export async function redeemPledgeFormAction(formData: FormData): Promise<{ erro
   }
 
   const pledge = await getPledge(pledgeId);
-  if (!pledge || pledge.status !== "active") {
+  if (!pledge || pledge.status !== "active" || pledge.deleted_at) {
     return { error: "لا يمكن تسجيل إعادة الشراء لهذه الفاتورة" };
   }
 
@@ -574,8 +581,98 @@ export async function redeemPledgeFormAction(formData: FormData): Promise<{ erro
 
 export async function forfeitPledgeAction(pledgeId: number): Promise<void> {
   await sql`
-    UPDATE pledges SET status = 'forfeited', updated_at = now() WHERE id = ${pledgeId} AND status = 'active'
+    UPDATE pledges SET status = 'forfeited', updated_at = now()
+    WHERE id = ${pledgeId} AND status = 'active' AND deleted_at IS NULL
   `;
+  redirect(`/pledges/${pledgeId}`);
+}
+
+export async function updatePledgeFormAction(formData: FormData): Promise<{ error?: string }> {
+  const pledgeId = toId(formData.get("pledge_id"));
+  if (pledgeId === null) {
+    return { error: "بيانات غير صحيحة" };
+  }
+  const existingPledge = await getPledge(pledgeId);
+  if (!existingPledge || existingPledge.deleted_at) {
+    return { error: "الفاتورة غير موجودة أو محذوفة" };
+  }
+
+  const contract_number = String(formData.get("contract_number") ?? "").trim();
+  const item_type = String(formData.get("item_type") ?? "").trim();
+  const item_description = String(formData.get("item_description") ?? "").trim();
+  const weight_grams = String(formData.get("weight_grams") ?? "").trim();
+  const reference_number = String(formData.get("reference_number") ?? "").trim();
+  const box_number = String(formData.get("box_number") ?? "").trim();
+  const family_group = String(formData.get("family_group") ?? "").trim();
+  const principal_amount = Number(formData.get("principal_amount"));
+  const monthly_rate_percent = Number(formData.get("monthly_rate_percent"));
+  const period_days = Number(formData.get("period_days") || 90);
+  const start_date = String(formData.get("start_date") ?? "").trim();
+  const notes = String(formData.get("notes") ?? "").trim();
+  const item_photo = String(formData.get("item_photo") ?? "").trim();
+
+  if (!contract_number || !item_type || !item_description || !start_date) {
+    return { error: "الرجاء تعبئة جميع الحقول المطلوبة" };
+  }
+  if (!isValidDateStr(start_date)) {
+    return { error: "تاريخ الشراء غير صحيح" };
+  }
+  if (item_photo && !item_photo.startsWith("data:image/")) {
+    return { error: "صيغة صورة البضاعة غير صحيحة" };
+  }
+  if (item_photo.length > 2_000_000) {
+    return { error: "حجم صورة البضاعة كبير جدًا" };
+  }
+  if (!Number.isFinite(principal_amount) || principal_amount <= 0) {
+    return { error: "مبلغ الشراء غير صحيح" };
+  }
+  if (!Number.isFinite(monthly_rate_percent) || monthly_rate_percent < 0) {
+    return { error: "نسبة الاسترداد غير صحيحة" };
+  }
+  if (!Number.isFinite(period_days) || period_days <= 0) {
+    return { error: "مدة الاسترداد غير صحيحة" };
+  }
+  if (weight_grams && (!Number.isFinite(Number(weight_grams)) || Number(weight_grams) < 0)) {
+    return { error: "وزن القطعة غير صحيح" };
+  }
+
+  if (contract_number !== existingPledge.contract_number) {
+    const existing = (await sql`
+      SELECT id FROM pledges WHERE contract_number = ${contract_number} AND id != ${pledgeId}
+    `) as { id: number }[];
+    if (existing.length > 0) {
+      return { error: "رقم العقد/الفاتورة مستخدم مسبقًا" };
+    }
+  }
+
+  try {
+    await sql`
+      UPDATE pledges SET
+        contract_number = ${contract_number}, item_type = ${item_type}, item_description = ${item_description},
+        weight_grams = ${weight_grams ? Number(weight_grams) : null}, reference_number = ${reference_number || null},
+        box_number = ${box_number || null}, family_group = ${family_group || null},
+        principal_amount = ${principal_amount}, monthly_rate_percent = ${monthly_rate_percent},
+        period_days = ${period_days}, start_date = ${start_date}, notes = ${notes || null},
+        item_photo = ${item_photo || null}, updated_at = now()
+      WHERE id = ${pledgeId}
+    `;
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      return { error: "رقم العقد/الفاتورة مستخدم مسبقًا" };
+    }
+    throw err;
+  }
+
+  redirect(`/pledges/${pledgeId}`);
+}
+
+export async function deletePledgeAction(pledgeId: number): Promise<void> {
+  await sql`UPDATE pledges SET deleted_at = now(), updated_at = now() WHERE id = ${pledgeId}`;
+  redirect(`/pledges/${pledgeId}`);
+}
+
+export async function restorePledgeAction(pledgeId: number): Promise<void> {
+  await sql`UPDATE pledges SET deleted_at = NULL, updated_at = now() WHERE id = ${pledgeId}`;
   redirect(`/pledges/${pledgeId}`);
 }
 

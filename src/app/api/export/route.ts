@@ -9,6 +9,7 @@ export async function GET() {
     SELECT p.*, c.full_name AS customer_full_name, c.national_id AS customer_national_id, c.phone AS customer_phone
     FROM pledges p
     JOIN customers c ON c.id = p.customer_id
+    WHERE p.deleted_at IS NULL
     ORDER BY p.created_at
   `) as PledgeWithCustomer[];
 

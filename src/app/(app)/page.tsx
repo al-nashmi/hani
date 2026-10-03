@@ -10,6 +10,7 @@ const FILTERS: { key: PledgeStatusFilter; label: string }[] = [
   { key: "overdue", label: "متأخرة" },
   { key: "forfeited", label: "ملك المحل" },
   { key: "redeemed", label: "تم الاسترداد" },
+  { key: "deleted", label: "محذوفة" },
 ];
 
 const SORT_KEYS: PledgeSortKey[] = [

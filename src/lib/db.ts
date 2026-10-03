@@ -68,6 +68,7 @@ export type Pledge = {
   receiver_id_photo: string | null;
   created_at: string | Date;
   updated_at: string | Date;
+  deleted_at: string | Date | null;
 };
 
 export type PledgeWithCustomer = Pledge & {

@@ -19,7 +19,8 @@ type ColumnKey =
   | "daysElapsed"
   | "daysRemaining"
   | "totalDue"
-  | "status";
+  | "status"
+  | "box_number";
 
 /** "always" columns are the fixed minimum that must fit on one line even on the narrowest phone. */
 type ColumnTier = "always" | "sm" | "md" | "lg" | "xl";
@@ -114,6 +115,13 @@ const COLUMNS: Column[] = [
     sortKey: "item_type",
     defaultDir: "asc",
     render: (r) => <span className="text-slate-600">{r.pledge.item_type}</span>,
+  },
+  {
+    key: "box_number",
+    label: "رقم الصندوق",
+    tier: "md",
+    defaultDir: "asc",
+    render: (r) => <span className="text-slate-600">{r.pledge.box_number || "-"}</span>,
   },
   {
     key: "principal_amount",
