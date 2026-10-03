@@ -35,7 +35,7 @@ type Column = {
   render: (row: Row) => React.ReactNode;
 };
 
-const compactSAR = new Intl.NumberFormat("ar-SA", {
+const compactSAR = new Intl.NumberFormat("ar-SA-u-nu-latn", {
   style: "currency",
   currency: "SAR",
   maximumFractionDigits: 0,

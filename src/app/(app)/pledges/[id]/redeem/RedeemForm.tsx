@@ -31,7 +31,7 @@ export default function RedeemForm({
   const [receiverNationalId, setReceiverNationalId] = useState("");
   const [settlementAmount, setSettlementAmount] = useState(String(suggestedAmount));
 
-  const amountLabel = new Intl.NumberFormat("ar-SA", {
+  const amountLabel = new Intl.NumberFormat("ar-SA-u-nu-latn", {
     style: "currency",
     currency: "SAR",
     maximumFractionDigits: 2,
@@ -111,7 +111,7 @@ export default function RedeemForm({
           className="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600"
         />
         <p className="mt-1 text-xs text-slate-500">
-          المبلغ المحسوب تلقائيًا: {new Intl.NumberFormat("ar-SA", { style: "currency", currency: "SAR", maximumFractionDigits: 2 }).format(suggestedAmount)}
+          المبلغ المحسوب تلقائيًا: {new Intl.NumberFormat("ar-SA-u-nu-latn", { style: "currency", currency: "SAR", maximumFractionDigits: 2 }).format(suggestedAmount)}
           {" "}- يمكن تعديله عند الحاجة (تسوية أو خصم).
         </p>
       </section>

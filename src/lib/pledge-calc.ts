@@ -77,7 +77,7 @@ export function computePledge(pledge: Pledge, asOf: Date = todayUtc()): PledgeCo
 }
 
 export function formatSAR(amount: number): string {
-  return new Intl.NumberFormat("ar-SA", {
+  return new Intl.NumberFormat("ar-SA-u-nu-latn", {
     style: "currency",
     currency: "SAR",
     maximumFractionDigits: 2,
@@ -91,7 +91,7 @@ export function toISODateString(value: string | Date | null): string {
 }
 
 export function formatDate(value: string | Date): string {
-  return new Intl.DateTimeFormat("ar-SA-u-ca-gregory", {
+  return new Intl.DateTimeFormat("ar-SA-u-ca-gregory-nu-latn", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -113,7 +113,7 @@ export function normalizeSaudiPhone(raw: string): string | null {
 /** For real timestamps (contact log, created_at) where the time of day matters. */
 export function formatDateTime(value: string | Date): string {
   const d = value instanceof Date ? value : new Date(value);
-  return new Intl.DateTimeFormat("ar-SA-u-ca-gregory", {
+  return new Intl.DateTimeFormat("ar-SA-u-ca-gregory-nu-latn", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(d);
