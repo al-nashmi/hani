@@ -28,7 +28,6 @@ export default function ContactLogForm({
   customerName,
   contractNumber,
   daysRemaining,
-  principalAmount,
   shopName,
 }: {
   customerId: number;
@@ -38,7 +37,6 @@ export default function ContactLogForm({
   customerName: string;
   contractNumber: string;
   daysRemaining: number;
-  principalAmount: string;
   shopName: string;
 }) {
   const contactedAtRef = useRef<HTMLInputElement>(null);
@@ -46,8 +44,7 @@ export default function ContactLogForm({
 
   const message =
     `السلام عليكم ${customerName}\n` +
-    `نتواصل معكم لتذكيركم بخصوص فاتورتكم رقم ${contractNumber}، متبقي على نهاية فترة الحجز ${daysRemaining} يوم، ` +
-    `ومبلغ الشراء هو ${principalAmount} لدى ${shopName}.`;
+    `فاتورتكم رقم ${contractNumber}، متبقي على نهاية فترة الحجز ${daysRemaining} يوم، ${shopName}.`;
   const whatsappUrl = normalizedPhone ? `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}` : null;
   const smsUrl = customerPhone ? `sms:${customerPhone}?&body=${encodeURIComponent(message)}` : null;
   const telUrl = customerPhone ? `tel:${customerPhone}` : null;

@@ -13,7 +13,7 @@ import {
   type ShopProfile,
 } from "./db";
 import { checkPassword, createSessionToken, invalidateAllSessions, sessionCookieOptions, SESSION_COOKIE } from "./auth";
-import { computePledge, formatDate, normalizeSaudiPhone, todayUtc } from "./pledge-calc";
+import { computePledge, normalizeSaudiPhone, todayUtc } from "./pledge-calc";
 import { stripNonDigits } from "./form-input";
 import { runScanWithLog } from "./haraj-scraper";
 import type { WatchLeadKind, WatchLeadStatus, WatchLeadWithImages } from "./db";
@@ -353,10 +353,8 @@ export async function listReminders(): Promise<ReminderItem[]> {
   return rows.map((p) => {
     const computed = computePledge(p, today);
     const message =
-      `السلام عليكم\n` +
-      `حبينا نذكرك بفاتورتك رقم ${p.contract_number}\n` +
-      `الموعد النهائي للسداد بتاريخ ${formatDate(computed.endDate)}\n` +
-      shopProfile.name;
+      `السلام عليكم ${p.customer_full_name}\n` +
+      `فاتورتكم رقم ${p.contract_number}، متبقي على نهاية فترة الحجز ${computed.daysRemaining} يوم، ${shopProfile.name}.`;
 
     const normalizedPhone = p.customer_phone ? normalizeSaudiPhone(p.customer_phone) : null;
     const whatsappUrl = normalizedPhone
